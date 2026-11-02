@@ -16,7 +16,7 @@ function shiftMonth(month: ISODate, delta: number): ISODate {
 }
 
 export function CalendarPage() {
-  const { t, num, date, lang } = useI18n();
+  const { t, num, date, lang, durShort } = useI18n();
   const { profile, ledger, absences, holidays, today } = useAppData();
   const [month, setMonth] = useState(() => startOfMonth(today));
   const [mode, setMode] = useState<Mode>('vacation');
@@ -100,9 +100,9 @@ export function CalendarPage() {
             return (
               <button key={d} className={classes} onClick={() => apply(d)} title={holiday ?? undefined}>
                 <span className="cal-num">{Number(d.slice(8))}</span>
-                {a && <span className="cal-tag">{tags[a.type]}{a.hours !== null ? ` ${num(a.hours)}` : ''}</span>}
+                {a && <span className="cal-tag">{tags[a.type]}{a.hours !== null ? ` ${durShort(a.hours)}` : ''}</span>}
                 {holiday && !a && <span className="cal-tag">★</span>}
-                {worked > 0 && <span className="cal-hours">{num(worked)}</span>}
+                {worked > 0 && <span className="cal-hours">{durShort(worked)}</span>}
               </button>
             );
           })}

@@ -8,13 +8,15 @@ import { useAppData } from './AppData';
 import { AreasEditor } from './AreasEditor';
 import { Card, download, pickTextFile } from './common';
 import { MigrationButton } from './MigrationButton';
+import { askNoteOnStart, setAskNoteOnStart } from './NoteDialog';
 import { exportProfile, ImportProfileButton, loadExampleProfile, ProfileJsonDialog } from './ProfileTools';
 import { SyncSettings } from './SyncSettings';
 
 export function SettingsPage() {
-  const { t, lang, setLang, date, num } = useI18n();
+  const { t, lang, setLang, date, num, dur } = useI18n();
   const { profile, sessions, ledger, now } = useAppData();
   const [jsonOpen, setJsonOpen] = useState(false);
+  const [askOnStart, setAskOnStartState] = useState(askNoteOnStart);
   const [germanCsv, setGermanCsv] = useState(lang === 'de');
   const [persisted, setPersisted] = useState<boolean | null>(null);
 
@@ -73,9 +75,9 @@ export function SettingsPage() {
           {t('settings.summary', {
             from: date(profile.period.start, { day: '2-digit', month: '2-digit', year: 'numeric' }),
             to: date(profile.period.end, { day: '2-digit', month: '2-digit', year: 'numeric' }),
-            week: num(profile.contract.weeklyHours),
-            day: num(ledger.perDay, 2),
-            balance: num(profile.period.startBalanceHours),
+            week: dur(profile.contract.weeklyHours),
+            day: dur(ledger.perDay),
+            balance: dur(profile.period.startBalanceHours),
             vacation: num(profile.vacation.daysPerYear),
           })}
         </p>
@@ -126,6 +128,21 @@ export function SettingsPage() {
             </label>
           )}
         </div>
+      </Card>
+
+      <Card title={t('settings.notes')}>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={askOnStart}
+            onChange={(e) => {
+              setAskOnStartState(e.target.checked);
+              setAskNoteOnStart(e.target.checked);
+            }}
+          />
+          {t('settings.askNoteOnStart')}
+        </label>
+        <p className="hint">{t('settings.askNoteHint')}</p>
       </Card>
 
       <Card title={t('settings.warnings')}>

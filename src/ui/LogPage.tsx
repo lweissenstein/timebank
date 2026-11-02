@@ -4,13 +4,13 @@ import type { Session } from '../core/types';
 import { breakMinutesOf, sessionWorkMs } from '../core/worktime';
 import { useI18n } from '../i18n';
 import { useAppData } from './AppData';
-import { download, formatDuration, labelFor } from './common';
+import { download, labelFor } from './common';
 import { SessionDialog } from './SessionDialog';
 
 const PAGE_DAYS = 21;
 
 export function LogPage() {
-  const { t, date, time } = useI18n();
+  const { t, date, time, dur } = useI18n();
   const { profile, sessions, now } = useAppData();
   const [areaFilter, setAreaFilter] = useState('');
   const [thesisOnly, setThesisOnly] = useState(false);
@@ -39,7 +39,7 @@ export function LogPage() {
       .reverse()
       .map((s) => {
         const l = labelFor(profile, s.areaId, s.categoryId);
-        return `- ${toISODate(new Date(s.start))} · ${l.area} / ${l.category} (${formatDuration(sessionWorkMs(s, now), false)} h)${s.note ? `: ${s.note}` : ''}`;
+        return `- ${toISODate(new Date(s.start))} · ${l.area} / ${l.category} (${dur(sessionWorkMs(s, now) / 3_600_000)})${s.note ? `: ${s.note}` : ''}`;
       });
     download(`timebank-notes-${toISODate(new Date())}.md`, `# Notes\n\n${lines.join('\n')}\n`, 'text/markdown');
   }
@@ -82,8 +82,8 @@ export function LogPage() {
             <header>
               <span className="day-title">{date(day, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
               <span className="day-sum">
-                <strong>{formatDuration(work, false)} h</strong>
-                {other > 0 && ` + ${formatDuration(other, false)} h ${t('common.notCounted')}`} · {t('log.breakShort', { min: Math.round(breakMinutesOf(list.filter(counting), now)) })}
+                <strong>{dur(work / 3_600_000)}</strong>
+                {other > 0 && ` + ${dur(other / 3_600_000)} ${t('common.notCounted')}`} · {t('log.breakShort', { min: Math.round(breakMinutesOf(list.filter(counting), now)) })}
               </span>
             </header>
             <ul className="session-list">
@@ -102,7 +102,7 @@ export function LogPage() {
                         {s.note && <span className="session-note">{s.note}</span>}
                       </span>
                       <span className="session-time">
-                        <span>{formatDuration(sessionWorkMs(s, now), false)}</span>
+                        <span>{dur(sessionWorkMs(s, now) / 3_600_000)}</span>
                         <span className="muted">
                           {time(s.start)}–{s.end === null ? t('log.running') : time(s.end)}
                         </span>

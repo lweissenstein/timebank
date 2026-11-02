@@ -31,7 +31,7 @@ function saveAssumed(v: number) {
 }
 
 export function StatsPage() {
-  const { t, num, signed, date } = useI18n();
+  const { t, signed, date, dur } = useI18n();
   const { profile, ledger, sessions, holidays, today, now } = useAppData();
   const average = averageWeeklyWork(ledger, today);
   const [assumed, setAssumedState] = useState<number>(() => loadAssumed() ?? Math.round(average?.hours ?? profile.contract.weeklyHours));
@@ -118,8 +118,8 @@ export function StatsPage() {
           <div className="muted small">{t('stats.balanceHint')}</div>
         </div>
         <div className="stats-grid">
-          <Stat label={t('stats.today')} value={`${num(day.actual)} / ${num(day.target)} h`} />
-          <Stat label={t('stats.weekSoFar')} value={`${num(weekSoFar.actual)} / ${num(weekSoFar.target)} h`} />
+          <Stat label={t('stats.today')} value={`${dur(day.actual)} / ${dur(day.target)}`} />
+          <Stat label={t('stats.weekSoFar')} value={`${dur(weekSoFar.actual)} / ${dur(weekSoFar.target)}`} />
           <Stat label={t('stats.weekDelta')} value={signed(weekSoFar.delta)} tone={tone(weekSoFar.delta)} />
         </div>
       </Card>
@@ -136,11 +136,11 @@ export function StatsPage() {
           <div className="chips">
             {average && (
               <button className="chip small" onClick={() => setAssumed(Math.round(average.hours * 10) / 10)}>
-                {t('stats.useAverage', { hours: num(average.hours), weeks: average.weeks })}
+                {t('stats.useAverage', { hours: dur(average.hours), weeks: average.weeks })}
               </button>
             )}
             <button className="chip small" onClick={() => setAssumed(profile.contract.weeklyHours)}>
-              {t('stats.useContract', { hours: num(profile.contract.weeklyHours) })}
+              {t('stats.useContract', { hours: dur(profile.contract.weeklyHours) })}
             </button>
           </div>
           <table className="table">
@@ -161,12 +161,12 @@ export function StatsPage() {
           </table>
           <p className="small">
             {zero.hours > 0
-              ? t('stats.zeroText', { date: date(profile.period.end), perWeek: num(zero.perWeek), total: num(zero.hours) })
-              : t('stats.zeroSurplus', { hours: num(-zero.hours) })}
+              ? t('stats.zeroText', { date: date(profile.period.end), perWeek: dur(zero.perWeek), total: dur(zero.hours) })
+              : t('stats.zeroSurplus', { hours: dur(-zero.hours) })}
           </p>
           <details className="explain">
             <summary>{t('stats.howCalculated')}</summary>
-            <p className="small muted">{t('stats.explanation', { perDay: num(ledger.perDay, 2), weekly: num(profile.contract.weeklyHours) })}</p>
+            <p className="small muted">{t('stats.explanation', { perDay: dur(ledger.perDay), weekly: dur(profile.contract.weeklyHours) })}</p>
           </details>
         </Card>
       )}
@@ -203,10 +203,10 @@ export function StatsPage() {
           )}
         </div>
         <div className="stats-grid">
-          <Stat label={t('stats.workedPaid')} value={`${num(totals.worked)} h`} />
-          <Stat label={t('stats.offCredited')} value={`${num(totals.vacation + totals.sick + totals.holiday)} h`} />
-          <Stat label={t('stats.credited')} value={`${num(totals.actual)} h`} />
-          <Stat label={t('stats.target')} value={`${num(totals.target)} h`} />
+          <Stat label={t('stats.workedPaid')} value={dur(totals.worked)} />
+          <Stat label={t('stats.offCredited')} value={dur(totals.vacation + totals.sick + totals.holiday)} />
+          <Stat label={t('stats.credited')} value={dur(totals.actual)} />
+          <Stat label={t('stats.target')} value={dur(totals.target)} />
           <Stat label={t('stats.delta')} value={signed(totals.delta)} tone={tone(totals.delta)} />
         </div>
         {partial && <p className="hint">{t('stats.untilToday')}</p>}
@@ -230,12 +230,12 @@ export function StatsPage() {
                 return (
                   <tr key={d} className={d === today ? 'current' : ''}>
                     <td className="nowrap">{date(d, { weekday: 'short', day: '2-digit', month: '2-digit' })}</td>
-                    <td>{x.worked ? num(x.worked, 2) : '–'}</td>
+                    <td>{x.worked ? dur(x.worked) : '–'}</td>
                     <td>
-                      {off ? num(off) : '–'}
+                      {off ? dur(off) : '–'}
                       {label && <div className="muted small">{label}</div>}
                     </td>
-                    <td>{x.target ? num(x.target) : '–'}</td>
+                    <td>{x.target ? dur(x.target) : '–'}</td>
                     <td className={`nowrap ${tone(x.delta) ?? ''}`}>{d <= today && (x.target || x.actual) ? signed(x.delta) : ''}</td>
                   </tr>
                 );
@@ -260,12 +260,12 @@ export function StatsPage() {
                     <span className="bar-track">
                       <span className="bar" style={{ width: `${(a.hours / maxArea) * 100}%`, background: area?.color }} />
                     </span>
-                    <span className="bar-value">{num(a.hours)} h</span>
+                    <span className="bar-value">{dur(a.hours)}</span>
                   </summary>
                   {a.categories.map((c) => (
                     <div key={c.categoryId} className="bar-sub">
                       <span>{area?.categories.find((x) => x.id === c.categoryId)?.name ?? c.categoryId}</span>
-                      <span>{num(c.hours)} h</span>
+                      <span>{dur(c.hours)}</span>
                     </div>
                   ))}
                 </details>
@@ -279,7 +279,7 @@ export function StatsPage() {
               <li key={l.locationId}>
                 <span>{profile.workLocations?.find((x) => x.id === l.locationId)?.name ?? t('stats.noLocation')}</span>
                 <span className="muted">
-                  {num(l.hours)} h · {t('stats.days', { n: l.days })}
+                  {dur(l.hours)} · {t('stats.days', { n: l.days })}
                 </span>
               </li>
             ))}
@@ -307,9 +307,9 @@ export function StatsPage() {
                     {isoWeek(w.weekStart).week}
                     <div className="muted small">{date(w.from, { day: '2-digit', month: '2-digit' })}</div>
                   </td>
-                  <td>{num(w.worked)}</td>
-                  <td>{num(w.vacation + w.sick + w.holiday)}</td>
-                  <td>{num(w.target)}</td>
+                  <td>{dur(w.worked)}</td>
+                  <td>{dur(w.vacation + w.sick + w.holiday)}</td>
+                  <td>{dur(w.target)}</td>
                   <td className={`nowrap ${tone(w.delta) ?? ''}`}>{signed(w.delta)}</td>
                   <td className="nowrap">{signed(ledger.balanceAt(minDate(w.to, today)))}</td>
                 </tr>

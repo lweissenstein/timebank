@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { parseISODate, type ISODate } from '../core/dates';
+import { formatHours, formatSignedHours } from '../core/format';
 import { de } from './de';
 import { en, type MessageKey } from './en';
 
@@ -24,8 +25,12 @@ export interface I18n {
   t: (key: MessageKey, vars?: Record<string, string | number>) => string;
   /** Hours with one or two decimals, e.g. "12.5". */
   num: (n: number, digits?: number) => string;
-  /** Signed hours, e.g. "+12.5 h". */
+  /** Signed duration, e.g. "+12 h 30 min". */
   signed: (n: number) => string;
+  /** Duration in hours as "7 h 20 min". */
+  dur: (hours: number) => string;
+  /** Compact duration "7h20" for tight spaces. */
+  durShort: (hours: number) => string;
   /** Short date like "Mon, 09.11." */
   date: (d: ISODate, opts?: Intl.DateTimeFormatOptions) => string;
   time: (ms: number) => string;
@@ -59,7 +64,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLang,
       t,
       num,
-      signed: (n) => `${n > 0.005 ? '+' : n < -0.005 ? '−' : '±'}${num(Math.abs(n))} h`,
+      signed: formatSignedHours,
+      dur: (h) => formatHours(h),
+      durShort: (h) => formatHours(h, { compact: true }),
       date: (d, opts = { weekday: 'short', day: '2-digit', month: '2-digit' }) =>
         new Intl.DateTimeFormat(locale, opts).format(parseISODate(d)),
       time: (ms) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(ms)),

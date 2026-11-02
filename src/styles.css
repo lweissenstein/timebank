@@ -859,3 +859,56 @@ details summary {
 .table.days {
   margin-bottom: 10px;
 }
+
+.timer-note {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  white-space: pre-wrap;
+  cursor: pointer;
+}
+.timer-note.empty {
+  color: var(--muted);
+  background: none;
+}
+.note-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.note-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.note-label {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.note-section textarea {
+  margin-bottom: 0;
+}
+.suggestions .chip.small {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.divider {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 14px 0;
+}

@@ -1,20 +1,19 @@
 import { useState } from 'react';
 import { addDays, endOfWeek, startOfWeek } from '../core/dates';
-import type { Session } from '../core/types';
 import { dayWarnings, isUnusuallyLong } from '../core/warnings';
 import { sessionBreakMs, sessionWorkMs } from '../core/worktime';
 import { repo } from '../data/repo';
 import { useI18n } from '../i18n';
 import { useAppData, useNow } from './AppData';
 import { Card, formatDuration, labelFor, Segmented, Stat, tone } from './common';
-import { NoteDialog } from './NoteDialog';
+import { askNoteOnStart, NoteDialog, type NoteTarget } from './NoteDialog';
 import { WarningList } from './WarningList';
 
 export function TrackPage() {
-  const { t, signed, num, time, date } = useI18n();
+  const { t, signed, dur, time, date } = useI18n();
   const { profile, running, ledger, today, sessions } = useAppData();
   const now = useNow(1000);
-  const [finished, setFinished] = useState<Session | null>(null);
+  const [noteTarget, setNoteTarget] = useState<NoteTarget | null>(null);
   const locations = profile.workLocations ?? [];
   const [preferredLocation, setPreferredLocation] = useState(loadLocation);
   const location = locations.some((l) => l.id === preferredLocation) ? preferredLocation : locations[0]?.id;
@@ -22,8 +21,10 @@ export function TrackPage() {
 
   async function start(areaId: string, categoryId: string) {
     if (running && running.areaId === areaId && running.categoryId === categoryId) return;
+    // Time starts immediately; the note dialog opens afterwards.
     const stopped = await repo.start(areaId, categoryId, Date.now(), running?.locationId ?? location);
-    if (stopped) setFinished(stopped);
+    const started = askNoteOnStart() ? await repo.running() : undefined;
+    if (stopped || started) setNoteTarget({ finished: stopped, started });
   }
 
   async function chooseLocation(id: string) {
@@ -34,7 +35,7 @@ export function TrackPage() {
 
   async function stop() {
     const stopped = await repo.stop();
-    if (stopped) setFinished(stopped);
+    if (stopped) setNoteTarget({ finished: stopped });
   }
 
   const week = ledger.week(startOfWeek(today));
@@ -69,8 +70,12 @@ export function TrackPage() {
               {running.locationId && ` · ${locations.find((l) => l.id === running.locationId)?.name ?? running.locationId}`}
               {sessionBreakMs(running, now) > 0 && ` · ${t('track.break', { min: Math.round(sessionBreakMs(running, now) / 60000) })}`}
             </div>
+            <button className={`timer-note ${running.note ? '' : 'empty'}`} onClick={() => setNoteTarget({ started: running })}>
+              {running.note || `+ ${t('note.add')}`}
+              {running.thesisRelevant && <span className="badge">Thesis</span>}
+            </button>
             {profile.warnings.enabled && isUnusuallyLong(profile, running, now) && (
-              <p className="warning">{t('track.longSession', { hours: profile.warnings.longSessionHours })}</p>
+              <p className="warning">{t('track.longSession', { hours: dur(profile.warnings.longSessionHours) })}</p>
             )}
             <div className="timer-actions">
               <button className="btn big" onClick={() => repo.togglePause()}>
@@ -87,8 +92,8 @@ export function TrackPage() {
       </Card>
 
       <div className="stats-row">
-        <Stat label={t('track.today')} value={`${num(day.actual)} / ${num(day.target)} h`} />
-        <Stat label={t('track.week')} value={`${num(week.actual)} / ${num(week.target)} h`} />
+        <Stat label={t('track.today')} value={`${dur(day.actual)} / ${dur(day.target)}`} />
+        <Stat label={t('track.week')} value={`${dur(week.actual)} / ${dur(week.target)}`} />
         <Stat label={t('track.balanceYesterday')} value={signed(closedBalance)} tone={tone(closedBalance)} />
       </div>
 
@@ -138,7 +143,7 @@ export function TrackPage() {
         {date(startOfWeek(today))} – {date(endOfWeek(today))}: {signed(week.delta)}
       </p>
 
-      <NoteDialog session={finished} onClose={() => setFinished(null)} />
+      <NoteDialog target={noteTarget} onClose={() => setNoteTarget(null)} />
     </div>
   );
 }

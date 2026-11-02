@@ -18,7 +18,7 @@ interface Result {
 
 /** Applies a migration file to the local data. A backup is downloaded first. */
 export function MigrationButton() {
-  const { t, num } = useI18n();
+  const { t, dur, signed } = useI18n();
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,13 +74,13 @@ export function MigrationButton() {
               <tbody>
                 <tr>
                   <td>{t('stats.worked')}</td>
-                  <td>{num(result.before.workedHours, 2)} h</td>
-                  <td>{num(result.after.workedHours, 2)} h</td>
+                  <td>{dur(result.before.workedHours)}</td>
+                  <td>{dur(result.after.workedHours)}</td>
                 </tr>
                 <tr>
                   <td>{t('track.balance')}</td>
-                  <td>{num(result.before.balanceToday, 2)} h</td>
-                  <td>{num(result.after.balanceToday, 2)} h</td>
+                  <td>{signed(result.before.balanceToday)}</td>
+                  <td>{signed(result.after.balanceToday)}</td>
                 </tr>
               </tbody>
             </table>

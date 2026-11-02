@@ -28,7 +28,7 @@ export interface ChartPoint {
 }
 
 export function BalanceChart({ points, today }: { points: ChartPoint[]; today: string }) {
-  const { t, num, date } = useI18n();
+  const { t, num, signed, date } = useI18n();
   const c = COLORS[useDark() ? 'dark' : 'light'];
   const todayPoint = [...points].reverse().find((p) => p.date < today && p.actual !== undefined)?.date;
 
@@ -42,7 +42,7 @@ export function BalanceChart({ points, today }: { points: ChartPoint[]; today: s
           <ReferenceLine y={0} stroke={c.axis} strokeOpacity={0.5} />
           {todayPoint && <ReferenceLine x={todayPoint} stroke={c.axis} strokeDasharray="2 3" label={{ value: t('common.today'), fill: c.axis, fontSize: 11, position: 'insideTopLeft' }} />}
           <Tooltip
-            formatter={(v, name) => [`${num(Number(v))} h`, name]}
+            formatter={(v, name) => [signed(Number(v)), name]}
             labelFormatter={(d) => date(String(d), { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
             contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--ink)' }}
           />
