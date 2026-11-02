@@ -21,7 +21,9 @@ export function StatsPage() {
     return i < 0 ? 0 : i;
   });
 
-  const balance = ledger.balanceAt(today);
+  const balance = ledger.balanceAt(addDays(today, -1));
+  const balanceIfStopNow = ledger.balanceAt(today);
+  const day = ledger.day(today);
   const week = ledger.week(startOfWeek(today));
   const curve = useMemo(() => balanceCurve(ledger, today), [ledger, today]);
   const forecastDates = [...profile.milestones.map((m) => ({ date: m.date, name: m.name })), { date: addDays(profile.period.end, 1), name: t('stats.periodEnd') }];
@@ -69,8 +71,12 @@ export function StatsPage() {
         <div className="hero">
           <div className="stat-label">{t('stats.balance')}</div>
           <div className={`hero-value ${tone(balance) ?? ''}`}>{signed(balance)}</div>
+          <div className="muted small">{t('stats.balanceHint')}</div>
           <div className="muted small">
-            {t('stats.balanceHint')} · {t('stats.thisWeek')}: {num(week.actual)} / {num(week.target)} h ({signed(week.delta)})
+            {t('stats.todaySoFar', { actual: num(day.actual), target: num(day.target), balance: signed(balanceIfStopNow) })}
+          </div>
+          <div className="muted small">
+            {t('stats.thisWeek')}: {num(week.actual)} / {num(week.target)} h ({signed(week.delta)})
           </div>
           {currentPhase && <div className="muted small">{t('stats.currentPhase', { name: currentPhase.name })}</div>}
         </div>

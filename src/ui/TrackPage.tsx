@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { endOfWeek, startOfWeek } from '../core/dates';
+import { addDays, endOfWeek, startOfWeek } from '../core/dates';
 import type { Session } from '../core/types';
 import { dayWarnings, isUnusuallyLong } from '../core/warnings';
 import { sessionBreakMs, sessionWorkMs } from '../core/worktime';
@@ -31,6 +31,7 @@ export function TrackPage() {
   const day = ledger.day(today);
   const label = running && labelFor(profile, running.areaId, running.categoryId);
   const inPeriod = ledger.inPeriod(today);
+  const closedBalance = ledger.balanceAt(addDays(today, -1));
   const todayWarnings = dayWarnings(profile, sessions, now).filter((w) => w.date === today);
 
   return (
@@ -75,9 +76,9 @@ export function TrackPage() {
       </Card>
 
       <div className="stats-row">
-        <Stat label={t('track.todayWorked')} value={`${num(day.worked)} h`} />
+        <Stat label={t('track.today')} value={`${num(day.actual)} / ${num(day.target)} h`} />
         <Stat label={t('track.week')} value={`${num(week.actual)} / ${num(week.target)} h`} />
-        <Stat label={t('track.balance')} value={signed(ledger.balanceAt(today))} tone={tone(ledger.balanceAt(today))} />
+        <Stat label={t('track.balanceYesterday')} value={signed(closedBalance)} tone={tone(closedBalance)} />
       </div>
 
       {profile.warnings.enabled && <WarningList warnings={todayWarnings} />}

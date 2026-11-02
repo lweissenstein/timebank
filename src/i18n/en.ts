@@ -29,7 +29,8 @@ export const en = {
   'track.idle': 'Nothing running. Tap a category to start.',
   'track.tapToSwitch': 'Tap a category to start or switch',
   'track.longSession': 'This session has been running for more than {hours} h. Forgot to stop?',
-  'track.todayWorked': 'Worked today',
+  'track.today': 'Today (actual / target)',
+  'track.balanceYesterday': 'Balance (until yesterday)',
   'track.week': 'This week',
   'track.balance': 'Balance',
   'track.outsidePeriod': 'Today is outside the tracking period ({from} – {to}).',
@@ -46,6 +47,7 @@ export const en = {
   'log.more': 'Show more',
   'log.exportNotes': 'Export notes',
   'log.running': 'running',
+  'log.breakShort': 'break {min} min',
 
   'session.new': 'New entry',
   'session.edit': 'Edit entry',
@@ -81,7 +83,8 @@ export const en = {
   'cal.days': '{n} days',
 
   'stats.balance': 'Overtime balance',
-  'stats.balanceHint': 'including today',
+  'stats.balanceHint': 'as of last night – today is added when the day ends',
+  'stats.todaySoFar': 'Today so far: {actual} / {target} h → if you stop now: {balance}',
   'stats.thisWeek': 'This week',
   'stats.forecast': 'Forecast',
   'stats.byPlan': 'by plan',

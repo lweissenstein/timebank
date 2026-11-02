@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toISODate } from '../core/dates';
 import type { Session } from '../core/types';
-import { sessionWorkMs } from '../core/worktime';
+import { breakMinutesOf, sessionWorkMs } from '../core/worktime';
 import { useI18n } from '../i18n';
 import { useAppData } from './AppData';
 import { download, formatDuration, labelFor } from './common';
@@ -79,7 +79,9 @@ export function LogPage() {
           <section key={day} className="day-group">
             <header>
               <span>{date(day, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-              <span>{formatDuration(total, false)} h</span>
+              <span>
+                {formatDuration(total, false)} h · {t('log.breakShort', { min: Math.round(breakMinutesOf(list, now)) })}
+              </span>
             </header>
             <ul className="session-list">
               {list.map((s) => {

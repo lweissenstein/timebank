@@ -44,3 +44,19 @@ export function workByDay(sessions: Session[], now: number): Map<ISODate, number
   }
   return map;
 }
+
+/**
+ * Total break of a set of sessions on one day in minutes: recorded pauses plus
+ * gaps between consecutive sessions.
+ */
+export function breakMinutesOf(sessions: Session[], now: number): number {
+  const sorted = [...sessions].sort((a, b) => a.start - b.start);
+  let ms = 0;
+  let lastEnd: number | null = null;
+  for (const s of sorted) {
+    ms += sessionBreakMs(s, now);
+    if (lastEnd !== null && s.start > lastEnd) ms += s.start - lastEnd;
+    lastEnd = Math.max(lastEnd ?? 0, s.end ?? now);
+  }
+  return ms / MS_PER_MINUTE;
+}

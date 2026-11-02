@@ -31,7 +31,8 @@ export const de: Record<MessageKey, string> = {
   'track.idle': 'Nichts läuft. Tippe auf eine Kategorie zum Starten.',
   'track.tapToSwitch': 'Tippen zum Starten oder Wechseln',
   'track.longSession': 'Diese Session läuft schon über {hours} h. Stoppen vergessen?',
-  'track.todayWorked': 'Heute gearbeitet',
+  'track.today': 'Heute (Ist / Soll)',
+  'track.balanceYesterday': 'Saldo (bis gestern)',
   'track.week': 'Diese Woche',
   'track.balance': 'Saldo',
   'track.outsidePeriod': 'Heute liegt außerhalb des Erfassungszeitraums ({from} – {to}).',
@@ -48,6 +49,7 @@ export const de: Record<MessageKey, string> = {
   'log.more': 'Mehr anzeigen',
   'log.exportNotes': 'Notizen exportieren',
   'log.running': 'läuft',
+  'log.breakShort': 'Pause {min} min',
 
   'session.new': 'Neuer Eintrag',
   'session.edit': 'Eintrag bearbeiten',
@@ -83,7 +85,8 @@ export const de: Record<MessageKey, string> = {
   'cal.days': '{n} Tage',
 
   'stats.balance': 'Überstundenkonto',
-  'stats.balanceHint': 'inkl. heute',
+  'stats.balanceHint': 'Stand gestern Abend – heute wird zum Tagesende verrechnet',
+  'stats.todaySoFar': 'Heute bisher: {actual} / {target} h → wenn du jetzt aufhörst: {balance}',
   'stats.thisWeek': 'Diese Woche',
   'stats.forecast': 'Prognose',
   'stats.byPlan': 'laut Plan',
