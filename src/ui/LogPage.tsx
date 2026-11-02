@@ -139,7 +139,7 @@ export function LogPage() {
           .filter((s) => !counting(s))
           .reduce((sum, s) => sum + sessionWorkMs(s, now), 0);
         const open = expanded.has(day);
-        const pauses = pausesOfDay(list, counting, now);
+        const pauses = pausesOfDay(list, now);
         const pauseMinutes = pauses.reduce((sum, p) => sum + p.minutes, 0);
         // Pauses only make sense on the unfiltered timeline of a day.
         const timeline: (
@@ -235,13 +235,6 @@ export function LogPage() {
                           <span>
                             <strong>{t('log.pause')}</strong>
                             {p.running && <span className="badge">{t('log.running')}</span>}
-                          </span>
-                          <span className="session-note">
-                            {owner
-                              ? t('log.pauseIn', {
-                                  area: labelFor(profile, owner.areaId, owner.categoryId).area,
-                                })
-                              : t('log.pauseGap')}
                           </span>
                         </span>
                         <span className="session-time">

@@ -66,7 +66,7 @@ export interface PauseItem {
   start: number | null;
   end: number | null;
   minutes: number;
-  /** Set for pauses recorded inside a session. */
+  /** The session in which the pause was recorded. */
   sessionId?: string;
   /** The pause is still running. */
   running?: boolean;
@@ -75,15 +75,14 @@ export interface PauseItem {
 }
 
 /**
- * All pauses of one day:
- *  - pauses recorded inside sessions (with times if known, otherwise the
- *    remaining total without times),
- *  - gaps between two consecutive work sessions (no other session in between).
+ * Breaks of one day as recorded with the pause button (with times), plus the
+ * total of older or manually edited breaks without times. Gaps between
+ * sessions are not breaks.
  */
-export function pausesOfDay(sessions: Session[], isWork: (s: Session) => boolean, now: number): PauseItem[] {
+export function pausesOfDay(sessions: Session[], now: number): PauseItem[] {
   const items: PauseItem[] = [];
-  const sorted = [...sessions].filter((s) => !s.deleted).sort((a, b) => a.start - b.start);
-  for (const s of sorted) {
+  for (const s of sessions) {
+    if (s.deleted) continue;
     let recorded = 0;
     for (const p of s.pauses ?? []) {
       const minutes = (p.end - p.start) / MS_PER_MINUTE;
@@ -96,14 +95,6 @@ export function pausesOfDay(sessions: Session[], isWork: (s: Session) => boolean
     }
     if (s.end === null && s.pausedAt !== null) {
       items.push({ start: s.pausedAt, end: null, minutes: (now - s.pausedAt) / MS_PER_MINUTE, sessionId: s.id, running: true, at: s.pausedAt });
-    }
-  }
-  for (let i = 1; i < sorted.length; i++) {
-    const a = sorted[i - 1];
-    const b = sorted[i];
-    const aEnd = a.end ?? now;
-    if (isWork(a) && isWork(b) && b.start > aEnd) {
-      items.push({ start: aEnd, end: b.start, minutes: (b.start - aEnd) / MS_PER_MINUTE, at: aEnd });
     }
   }
   return items.sort((x, y) => x.at - y.at);

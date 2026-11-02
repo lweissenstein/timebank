@@ -5,6 +5,8 @@ import type { Absence, AbsenceType, Profile, Session } from '../core/types';
 import { db, newId, type TimebankDB } from './db';
 
 const PROFILE_KEY = 'profile';
+/** Gaps shorter than this between stop and next start are closed automatically. */
+export const CONTINUITY_MS = 2 * 60_000;
 
 /** Data access for the app. Every write bumps `updatedAt` so changes can be synced. */
 export class Repository {
@@ -34,11 +36,15 @@ export class Repository {
   async start(areaId: string, categoryId: string, now = Date.now(), locationId?: string): Promise<Session | undefined> {
     return this.store.transaction('rw', this.store.sessions, async () => {
       const stopped = await this.stopInternal(now);
+      // A stop followed by a start within a short time is a correction, not a break:
+      // the new session starts exactly where the last one ended.
+      const lastEnd = stopped?.end ?? (await this.lastEnd());
+      const start = lastEnd !== null && now - lastEnd >= 0 && now - lastEnd < CONTINUITY_MS ? lastEnd : now;
       await this.store.sessions.add({
         id: newId(),
         areaId,
         categoryId,
-        start: now,
+        start,
         end: null,
         breakMinutes: 0,
         pausedAt: null,
@@ -49,6 +55,15 @@ export class Repository {
       });
       return stopped;
     });
+  }
+
+  /** End time of the most recently finished session. */
+  private async lastEnd(): Promise<number | null> {
+    let latest: number | null = null;
+    await this.store.sessions.each((s) => {
+      if (!s.deleted && s.end !== null && (latest === null || s.end > latest)) latest = s.end;
+    });
+    return latest;
   }
 
   async stop(now = Date.now()): Promise<Session | undefined> {
