@@ -827,3 +827,35 @@ details summary {
   display: flex;
   justify-content: space-between;
 }
+
+.assume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+}
+.assume input {
+  width: 96px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.chip.small {
+  min-height: 34px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+  margin: 8px 0 4px;
+}
+.big-num {
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: right;
+  vertical-align: middle;
+}
+.explain summary {
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.table.days {
+  margin-bottom: 10px;
+}

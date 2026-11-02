@@ -1,42 +1,84 @@
 import { useMemo, useState } from 'react';
-import { addDays, endOfMonth, endOfWeek, isoWeek, maxDate, minDate, startOfMonth, startOfWeek, type ISODate } from '../core/dates';
-import { balanceCurve, forecast, phaseAt, requiredToBalance } from '../core/plan';
+import { addDays, eachDay, endOfMonth, endOfWeek, isoWeek, maxDate, minDate, startOfMonth, startOfWeek, type ISODate } from '../core/dates';
+import { averageWeeklyWork, hoursToZero, projectBalance, projectedBalanceOn } from '../core/projection';
 import { breakdown, locationBreakdown } from '../core/reports';
 import { dayWarnings } from '../core/warnings';
 import { useI18n } from '../i18n';
 import { useAppData } from './AppData';
-import { BalanceChart } from './BalanceChart';
+import { BalanceChart, type ChartPoint } from './BalanceChart';
 import { Card, Segmented, Stat, tone } from './common';
 import { WarningList } from './WarningList';
 
-type Scope = 'week' | 'month' | 'phase' | 'total';
+type Scope = 'week' | 'month' | 'total';
+
+const ASSUMED_KEY = 'timebank.assumedWeeklyHours';
+
+function loadAssumed(): number | null {
+  try {
+    const v = localStorage.getItem(ASSUMED_KEY);
+    return v === null ? null : Number(v);
+  } catch {
+    return null;
+  }
+}
+
+function saveAssumed(v: number) {
+  try {
+    localStorage.setItem(ASSUMED_KEY, String(v));
+  } catch {
+    /* ignore */
+  }
+}
 
 export function StatsPage() {
   const { t, num, signed, date } = useI18n();
-  const { profile, ledger, sessions, today, now } = useAppData();
+  const { profile, ledger, sessions, holidays, today, now } = useAppData();
+  const average = averageWeeklyWork(ledger, today);
+  const [assumed, setAssumedState] = useState<number>(() => loadAssumed() ?? Math.round(average?.hours ?? profile.contract.weeklyHours));
+  const setAssumed = (v: number) => {
+    const clean = Number.isFinite(v) && v >= 0 ? v : 0;
+    setAssumedState(clean);
+    saveAssumed(clean);
+  };
   const [scope, setScope] = useState<Scope>('week');
   const [anchor, setAnchor] = useState<ISODate>(() => minDate(maxDate(today, profile.period.start), profile.period.end));
-  const [phaseIndex, setPhaseIndex] = useState(() => {
-    const i = profile.phases.findIndex((p) => today >= p.start && today <= p.end);
-    return i < 0 ? 0 : i;
-  });
 
-  const balance = ledger.balanceAt(addDays(today, -1));
-  const balanceIfStopNow = ledger.balanceAt(today);
+  const yesterday = addDays(today, -1);
+  const balance = ledger.balanceAt(yesterday);
   const day = ledger.day(today);
-  const week = ledger.week(startOfWeek(today));
-  const curve = useMemo(() => balanceCurve(ledger, today), [ledger, today]);
-  const forecastDates = [...profile.milestones.map((m) => ({ date: m.date, name: m.name })), { date: addDays(profile.period.end, 1), name: t('stats.periodEnd') }];
-  const forecasts = forecast(ledger, today, forecastDates.map((f) => f.date));
-  const required = requiredToBalance(ledger, today);
-  const currentPhase = phaseAt(profile.phases, today);
+  const weekSoFar = ledger.range(startOfWeek(today), today);
+  const active = today <= profile.period.end;
+
+  // ----- projection -----
+  const targets = [
+    ...profile.milestones.filter((m) => m.date > today).map((m) => ({ date: m.date, name: m.name })),
+    { date: addDays(profile.period.end, 1), name: t('stats.periodEnd') },
+  ];
+  const projection = useMemo(() => projectBalance(ledger, today, assumed), [ledger, today, assumed]);
+  const zero = hoursToZero(ledger, today);
+  const chartPoints = useMemo<ChartPoint[]>(() => {
+    const points: ChartPoint[] = [{ date: addDays(ledger.start, -1), actual: ledger.openingBalance }];
+    for (const w of ledger.weeks()) {
+      if (w.to < today) points.push({ date: w.to, actual: ledger.balanceAt(w.to) });
+    }
+    if (today >= ledger.start && today <= ledger.end) {
+      // Connect actual and forecast at the end of yesterday.
+      const last = points[points.length - 1];
+      const start = ledger.balanceAt(yesterday);
+      if (last.date === yesterday) last.forecast = start;
+      else points.push({ date: yesterday, actual: start, forecast: start });
+      for (const w of ledger.weeks(today)) {
+        if (w.to >= today) points.push({ date: w.to, forecast: projection.get(w.to) });
+      }
+    }
+    return points;
+  }, [ledger, today, yesterday, projection]);
   const warnings = useMemo(() => dayWarnings(profile, sessions, now), [profile, sessions, now]);
 
   // ----- range for the breakdown -----
   let from: ISODate = profile.period.start;
-  let to: ISODate = profile.period.end;
-  let rangeLabel = t('stats.total');
-  const phase = profile.phases[phaseIndex];
+  let to: ISODate = minDate(profile.period.end, today);
+  let rangeLabel = `${t('stats.total')} · ${date(from)} – ${date(to)}`;
   if (scope === 'week') {
     from = startOfWeek(anchor);
     to = endOfWeek(anchor);
@@ -45,12 +87,10 @@ export function StatsPage() {
     from = startOfMonth(anchor);
     to = endOfMonth(anchor);
     rangeLabel = date(from, { month: 'long', year: 'numeric' });
-  } else if (scope === 'phase' && phase) {
-    from = phase.start;
-    to = phase.end;
-    rangeLabel = `${phase.name} · ${date(from)} – ${date(to)}`;
   }
-  const totals = ledger.range(from, to);
+  // Target and difference only count up to today; future days are not "missing" yet.
+  const totals = ledger.range(from, minDate(to, today));
+  const partial = to > today && from <= today;
   const parts = breakdown(profile.areas, sessions, from, to, now);
   const byLocation = (profile.workLocations?.length ?? 0) > 0 ? locationBreakdown(profile.areas, sessions, from, to, now) : [];
   const adjustments = profile.balanceAdjustments ?? [];
@@ -62,10 +102,12 @@ export function StatsPage() {
       const d = new Date(`${startOfMonth(anchor)}T00:00`);
       d.setMonth(d.getMonth() + dir);
       setAnchor(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
-    } else if (scope === 'phase') setPhaseIndex(Math.min(Math.max(0, phaseIndex + dir), profile.phases.length - 1));
+    }
   }
 
-  const weeks = ledger.weeks(profile.period.start, endOfWeek(today));
+  const weeks = ledger
+    .weeks(profile.period.start, endOfWeek(today))
+    .map((w) => (w.to > today ? { ...w, ...ledger.range(w.from, today), to: today } : w));
 
   return (
     <div className="page">
@@ -74,52 +116,63 @@ export function StatsPage() {
           <div className="stat-label">{t('stats.balance')}</div>
           <div className={`hero-value ${tone(balance) ?? ''}`}>{signed(balance)}</div>
           <div className="muted small">{t('stats.balanceHint')}</div>
-          <div className="muted small">
-            {t('stats.todaySoFar', { actual: num(day.actual), target: num(day.target), balance: signed(balanceIfStopNow) })}
-          </div>
-          <div className="muted small">
-            {t('stats.thisWeek')}: {num(week.actual)} / {num(week.target)} h ({signed(week.delta)})
-          </div>
-          {currentPhase && <div className="muted small">{t('stats.currentPhase', { name: currentPhase.name })}</div>}
+        </div>
+        <div className="stats-grid">
+          <Stat label={t('stats.today')} value={`${num(day.actual)} / ${num(day.target)} h`} />
+          <Stat label={t('stats.weekSoFar')} value={`${num(weekSoFar.actual)} / ${num(weekSoFar.target)} h`} />
+          <Stat label={t('stats.weekDelta')} value={signed(weekSoFar.delta)} tone={tone(weekSoFar.delta)} />
         </div>
       </Card>
 
-      <Card title={t('stats.forecast')}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th />
-              <th>{t('stats.byPlan')}</th>
-              <th>{t('stats.byPace')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {forecasts.map((f, i) => (
-              <tr key={f.date}>
-                <td>
-                  {forecastDates[i].name}
-                  <div className="muted small">{date(f.date)}</div>
-                </td>
-                <td className={`nowrap ${tone(f.byPlan) ?? ''}`}>{signed(f.byPlan)}</td>
-                <td className={`nowrap ${f.byPace === null ? 'muted' : (tone(f.byPace) ?? '')}`}>{f.byPace === null ? '–' : signed(f.byPace)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-
-      {today <= profile.period.end && (
-        <Card title={t('stats.required', { date: date(profile.period.end) })} className={currentPhase?.plannedHoursPerWeek === 'zero-balance' ? 'highlight' : ''}>
-          <p>
-            {required.totalHours > 0
-              ? t('stats.requiredText', { total: num(required.totalHours), perWeek: num(required.perWeek), perDay: num(required.perFreeWorkday) })
-              : t('stats.surplusText', { hours: num(-required.totalHours) })}
+      {active && (
+        <Card title={t('stats.forecast')}>
+          <label className="inline">
+            {t('stats.assumption')}
+            <span className="assume">
+              <input type="number" min={0} step={1} inputMode="decimal" value={assumed} onChange={(e) => setAssumed(Number(e.target.value))} />
+              <span>{t('stats.hoursPerWeek')}</span>
+            </span>
+          </label>
+          <div className="chips">
+            {average && (
+              <button className="chip small" onClick={() => setAssumed(Math.round(average.hours * 10) / 10)}>
+                {t('stats.useAverage', { hours: num(average.hours), weeks: average.weeks })}
+              </button>
+            )}
+            <button className="chip small" onClick={() => setAssumed(profile.contract.weeklyHours)}>
+              {t('stats.useContract', { hours: num(profile.contract.weeklyHours) })}
+            </button>
+          </div>
+          <table className="table">
+            <tbody>
+              {targets.map((f) => {
+                const value = projectedBalanceOn(ledger, today, assumed, f.date);
+                return (
+                  <tr key={f.date}>
+                    <td>
+                      {f.name}
+                      <div className="muted small">{t('stats.morningOf', { date: date(f.date, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) })}</div>
+                    </td>
+                    <td className={`nowrap big-num ${tone(value) ?? ''}`}>{signed(value)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="small">
+            {zero.hours > 0
+              ? t('stats.zeroText', { date: date(profile.period.end), perWeek: num(zero.perWeek), total: num(zero.hours) })
+              : t('stats.zeroSurplus', { hours: num(-zero.hours) })}
           </p>
+          <details className="explain">
+            <summary>{t('stats.howCalculated')}</summary>
+            <p className="small muted">{t('stats.explanation', { perDay: num(ledger.perDay, 2), weekly: num(profile.contract.weeklyHours) })}</p>
+          </details>
         </Card>
       )}
 
       <Card title={t('stats.chart')}>
-        <BalanceChart points={curve} today={today} />
+        <BalanceChart points={chartPoints} today={today} />
       </Card>
 
       <Card title={t('stats.breakdown')}>
@@ -129,82 +182,141 @@ export function StatsPage() {
           options={[
             { value: 'week', label: t('stats.week') },
             { value: 'month', label: t('stats.month') },
-            { value: 'phase', label: t('stats.phase') },
             { value: 'total', label: t('stats.total') },
           ]}
         />
-        {scope === 'phase' && profile.phases.length === 0 ? (
-          <p className="muted">{t('stats.noPhase')}</p>
-        ) : (
-          <>
-            <div className="range-nav">
-              {scope !== 'total' ? (
-                <button className="btn icon" onClick={() => step(-1)} aria-label="previous">
-                  ‹
-                </button>
-              ) : (
-                <span />
-              )}
-              <strong>{rangeLabel}</strong>
-              {scope !== 'total' ? (
-                <button className="btn icon" onClick={() => step(1)} aria-label="next">
-                  ›
-                </button>
-              ) : (
-                <span />
-              )}
-            </div>
-            <div className="stats-grid">
-              <Stat label={t('stats.target')} value={`${num(totals.target)} h`} />
-              <Stat label={t('stats.actualHours')} value={`${num(totals.actual)} h`} />
-              <Stat label={t('stats.delta')} value={signed(totals.delta)} tone={tone(totals.delta)} />
-              <Stat label={t('stats.worked')} value={`${num(totals.worked)} h`} />
-              <Stat label={`${t('stats.vacation')} / ${t('stats.sick')}`} value={`${num(totals.vacation + totals.sick)} h`} />
-              <Stat label={t('stats.holiday')} value={`${num(totals.holiday)} h`} />
-            </div>
-            {parts.areas.length === 0 ? (
-              <p className="muted">{t('stats.noData')}</p>
-            ) : (
-              <div className="bars">
-                {parts.areas.map((a) => {
-                  const area = profile.areas.find((x) => x.id === a.areaId);
-                  return (
-                    <details key={a.areaId} className="bar-group">
-                      <summary>
-                        <span className="bar-label">
-                          {area?.name ?? a.areaId}
-                          {area && !area.countsAsWork && <span className="badge">{t('common.notCounted')}</span>}
-                        </span>
-                        <span className="bar-track">
-                          <span className="bar" style={{ width: `${(a.hours / maxArea) * 100}%`, background: area?.color }} />
-                        </span>
-                        <span className="bar-value">{num(a.hours)} h</span>
-                      </summary>
-                      {a.categories.map((c) => (
-                        <div key={c.categoryId} className="bar-sub">
-                          <span>{area?.categories.find((x) => x.id === c.categoryId)?.name ?? c.categoryId}</span>
-                          <span>{num(c.hours)} h</span>
-                        </div>
-                      ))}
-                    </details>
-                  );
-                })}
-              </div>
-            )}
-            {byLocation.length > 0 && (
-              <ul className="plain location-list">
-                {byLocation.map((l) => (
-                  <li key={l.locationId}>
-                    <span>{profile.workLocations?.find((x) => x.id === l.locationId)?.name ?? t('stats.noLocation')}</span>
-                    <span className="muted">
-                      {num(l.hours)} h · {t('stats.days', { n: l.days })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
+        <div className="range-nav">
+          {scope !== 'total' ? (
+            <button className="btn icon" onClick={() => step(-1)} aria-label="previous">
+              ‹
+            </button>
+          ) : (
+            <span />
+          )}
+          <strong>{rangeLabel}</strong>
+          {scope !== 'total' ? (
+            <button className="btn icon" onClick={() => step(1)} aria-label="next">
+              ›
+            </button>
+          ) : (
+            <span />
+          )}
+        </div>
+        <div className="stats-grid">
+          <Stat label={t('stats.workedPaid')} value={`${num(totals.worked)} h`} />
+          <Stat label={t('stats.offCredited')} value={`${num(totals.vacation + totals.sick + totals.holiday)} h`} />
+          <Stat label={t('stats.credited')} value={`${num(totals.actual)} h`} />
+          <Stat label={t('stats.target')} value={`${num(totals.target)} h`} />
+          <Stat label={t('stats.delta')} value={signed(totals.delta)} tone={tone(totals.delta)} />
+        </div>
+        {partial && <p className="hint">{t('stats.untilToday')}</p>}
+
+        {scope === 'week' && (
+          <table className="table compact days">
+            <thead>
+              <tr>
+                <th />
+                <th>{t('stats.workedPaid')}</th>
+                <th>{t('stats.off')}</th>
+                <th>{t('stats.target')}</th>
+                <th>{t('stats.delta')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {eachDay(from, to).map((d) => {
+                const x = ledger.day(d);
+                const off = x.vacation + x.sick + x.holiday;
+                const label = x.holiday ? holidays.get(d) : x.vacation ? t('stats.vacation') : x.sick ? t('stats.sick') : '';
+                return (
+                  <tr key={d} className={d === today ? 'current' : ''}>
+                    <td className="nowrap">{date(d, { weekday: 'short', day: '2-digit', month: '2-digit' })}</td>
+                    <td>{x.worked ? num(x.worked, 2) : '–'}</td>
+                    <td>
+                      {off ? num(off) : '–'}
+                      {label && <div className="muted small">{label}</div>}
+                    </td>
+                    <td>{x.target ? num(x.target) : '–'}</td>
+                    <td className={`nowrap ${tone(x.delta) ?? ''}`}>{d <= today && (x.target || x.actual) ? signed(x.delta) : ''}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
+
+        {parts.areas.length === 0 ? (
+          <p className="muted">{t('stats.noData')}</p>
+        ) : (
+          <div className="bars">
+            {parts.areas.map((a) => {
+              const area = profile.areas.find((x) => x.id === a.areaId);
+              return (
+                <details key={a.areaId} className="bar-group">
+                  <summary>
+                    <span className="bar-label">
+                      {area?.name ?? a.areaId}
+                      {area && !area.countsAsWork && <span className="badge">{t('common.notCounted')}</span>}
+                    </span>
+                    <span className="bar-track">
+                      <span className="bar" style={{ width: `${(a.hours / maxArea) * 100}%`, background: area?.color }} />
+                    </span>
+                    <span className="bar-value">{num(a.hours)} h</span>
+                  </summary>
+                  {a.categories.map((c) => (
+                    <div key={c.categoryId} className="bar-sub">
+                      <span>{area?.categories.find((x) => x.id === c.categoryId)?.name ?? c.categoryId}</span>
+                      <span>{num(c.hours)} h</span>
+                    </div>
+                  ))}
+                </details>
+              );
+            })}
+          </div>
+        )}
+        {byLocation.length > 0 && (
+          <ul className="plain location-list">
+            {byLocation.map((l) => (
+              <li key={l.locationId}>
+                <span>{profile.workLocations?.find((x) => x.id === l.locationId)?.name ?? t('stats.noLocation')}</span>
+                <span className="muted">
+                  {num(l.hours)} h · {t('stats.days', { n: l.days })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card title={t('stats.weeks')}>
+        <div className="table-wrap">
+          <table className="table compact">
+            <thead>
+              <tr>
+                <th>{t('stats.cw')}</th>
+                <th>{t('stats.workedPaid')}</th>
+                <th>{t('stats.off')}</th>
+                <th>{t('stats.target')}</th>
+                <th>{t('stats.delta')}</th>
+                <th>{t('track.balance')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...weeks].reverse().map((w) => (
+                <tr key={w.weekStart} className={w.weekStart === startOfWeek(today) ? 'current' : ''}>
+                  <td>
+                    {isoWeek(w.weekStart).week}
+                    <div className="muted small">{date(w.from, { day: '2-digit', month: '2-digit' })}</div>
+                  </td>
+                  <td>{num(w.worked)}</td>
+                  <td>{num(w.vacation + w.sick + w.holiday)}</td>
+                  <td>{num(w.target)}</td>
+                  <td className={`nowrap ${tone(w.delta) ?? ''}`}>{signed(w.delta)}</td>
+                  <td className="nowrap">{signed(ledger.balanceAt(minDate(w.to, today)))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       {adjustments.length > 0 && (
@@ -220,38 +332,6 @@ export function StatsPage() {
           <p className="hint">{t('stats.adjustmentsHint')}</p>
         </Card>
       )}
-
-      <Card title={t('stats.weeks')}>
-        <div className="table-wrap">
-          <table className="table compact">
-            <thead>
-              <tr>
-                <th>{t('stats.cw')}</th>
-                <th>{t('stats.target')}</th>
-                <th>{t('stats.worked')}</th>
-                <th>{t('stats.absent')}</th>
-                <th>{t('stats.delta')}</th>
-                <th>{t('track.balance')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...weeks].reverse().map((w) => (
-                <tr key={w.weekStart} className={w.weekStart === startOfWeek(today) ? 'current' : ''}>
-                  <td>
-                    {isoWeek(w.weekStart).week}
-                    <div className="muted small">{date(w.from, { day: '2-digit', month: '2-digit' })}</div>
-                  </td>
-                  <td>{num(w.target)}</td>
-                  <td>{num(w.worked)}</td>
-                  <td>{num(w.vacation + w.sick + w.holiday)}</td>
-                  <td className={`nowrap ${tone(w.delta) ?? ''}`}>{signed(w.delta)}</td>
-                  <td className="nowrap">{signed(ledger.balanceAt(minDate(w.to, today)))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
 
       {profile.warnings.enabled && warnings.length > 0 && (
         <Card title={t('stats.warnings')}>

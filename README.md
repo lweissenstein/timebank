@@ -11,9 +11,10 @@ where you will end up.
   it as "thesis-relevant".
 - **Balance rules:** weekly target hours; actual hours = work + vacation + sick days +
   public holidays on workdays. Areas can be excluded from working time, e.g. a thesis.
-- **Plan & forecast:** phases with planned hours per week or `zero-balance`. The app
-  shows the planned vs. the actual balance, forecasts for milestones and how many
-  hours you still need to work to reach 0.
+- **Forecast:** "If I work X hours per week from today on, what is my balance on
+  date Y?" X defaults to your average of the last weeks. Entered vacation, sick
+  days and holidays are included. The app also shows how many hours per week you
+  need to reach a zero balance at the end of the period.
 - **Days off:** a calendar for vacation and sick days (full or partial). The vacation
   account per year shows entitlement, days earned so far, taken, planned and remaining.
 - **Holidays:** public holidays for 200+ countries and their regions come from
@@ -44,8 +45,6 @@ on first start. Keep your personal profile out of this repo (`*.personal.json` a
   "vacation": { "daysPerYear": 20, "proRata": true, "overrides": {} },
   "holidays": { "country": "DE", "region": "BE", "extra": [], "excluded": [] },
   "areas": [{ "id": "thesis", "name": "Thesis", "countsAsWork": false, "categories": [] }],
-  "phases": [{ "id": "end", "name": "Wind down", "start": "2027-06-01", "end": "2027-06-30",
-               "plannedHoursPerWeek": "zero-balance" }],
   "milestones": [{ "date": "2027-05-31", "name": "Submission" }],
   "balanceAdjustments": [{ "date": "2026-12-31", "hours": 5, "note": "carry-over" }],
   "workLocations": [{ "id": "office", "name": "Office" }, { "id": "remote", "name": "Remote" }]

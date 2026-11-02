@@ -30,6 +30,13 @@
 - Category migrations (`src/core/migrate.ts`, `npm run migrate`, *Settings → Apply migration*).
 - Balance adjustments (`balanceAdjustments`) and work locations (`workLocations`, `Session.locationId`).
 
+- Stats simplified: no phase plan in the UI anymore. The forecast is
+  `balance until yesterday + Σ(assumed work + entered absences + holidays − target)`
+  with assumed weekly hours (default: average of the last 4 completed weeks),
+  see `src/core/projection.ts`. `phases` stay in the profile schema for
+  compatibility but are not used by the UI (`core/plan.ts` is legacy).
+- Week/month totals and the weekly table count target and difference only up to today.
+
 ## Later
 - Optional per-category default for "thesis-relevant" (`thesisDefault`).
 - Excel export into the employer template (ExcelJS; needs the template). `core/worktime.workByDay` and the session data already give per-day start/end/break.

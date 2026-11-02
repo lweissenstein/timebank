@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import type { CurvePoint } from '../core/plan';
 import { useI18n } from '../i18n';
 
 // Validated (lightness, chroma, CVD separation) for each surface.
@@ -22,10 +21,16 @@ function useDark(): boolean {
   return dark;
 }
 
-export function BalanceChart({ points, today }: { points: CurvePoint[]; today: string }) {
+export interface ChartPoint {
+  date: string;
+  actual?: number;
+  forecast?: number;
+}
+
+export function BalanceChart({ points, today }: { points: ChartPoint[]; today: string }) {
   const { t, num, date } = useI18n();
   const c = COLORS[useDark() ? 'dark' : 'light'];
-  const todayPoint = points.find((p) => p.date >= today)?.date;
+  const todayPoint = [...points].reverse().find((p) => p.date < today && p.actual !== undefined)?.date;
 
   return (
     <div className="chart">
@@ -42,8 +47,8 @@ export function BalanceChart({ points, today }: { points: CurvePoint[]; today: s
             contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 8, color: 'var(--ink)' }}
           />
           <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ink-2)' }} />
-          <Line type="monotone" dataKey="planned" name={t('stats.planned')} stroke={c.plan} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="actual" name={t('stats.actual')} stroke={c.actual} strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />
+          <Line type="linear" dataKey="actual" name={t('stats.actual')} stroke={c.actual} strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 5 }} isAnimationActive={false} />
+          <Line type="linear" dataKey="forecast" name={t('stats.projected')} stroke={c.plan} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
