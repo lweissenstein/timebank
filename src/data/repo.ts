@@ -1,12 +1,12 @@
 import { MS_PER_MINUTE, type ISODate } from '../core/dates';
 import { isSnapshot, mergeSnapshots, type Snapshot } from '../core/merge';
 import { applyMigration, type Migration } from '../core/migrate';
+import { CONTINUITY_MS } from '../core/worktime';
 import type { Absence, AbsenceType, Profile, Session } from '../core/types';
 import { db, newId, type TimebankDB } from './db';
 
 const PROFILE_KEY = 'profile';
-/** Gaps shorter than this between stop and next start are closed automatically. */
-export const CONTINUITY_MS = 2 * 60_000;
+export { CONTINUITY_MS };
 
 /** Data access for the app. Every write bumps `updatedAt` so changes can be synced. */
 export class Repository {
@@ -100,6 +100,12 @@ export class Repository {
     const { snapshot: after, report } = applyMigration(before, migration, now);
     await this.restore(after);
     return { before, after, report };
+  }
+
+  /** Confirms the gap before a session as break, marks it as no break, or resets it. */
+  async setGapBefore(sessionId: string, value: 'pause' | 'off' | undefined): Promise<void> {
+    const s = await this.store.sessions.get(sessionId);
+    if (s) await this.store.sessions.put({ ...s, gapBefore: value, updatedAt: Date.now() });
   }
 
   async getSession(id: string): Promise<Session | undefined> {

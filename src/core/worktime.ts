@@ -61,13 +61,20 @@ export function breakMinutesOf(sessions: Session[], now: number): number {
   return ms / MS_PER_MINUTE;
 }
 
+/** Gaps shorter than this between two sessions are treated as continuous work. */
+export const CONTINUITY_MS = 2 * 60_000;
+
 export interface PauseItem {
   /** Start/end in epoch ms; null if only the total is known. */
   start: number | null;
   end: number | null;
   minutes: number;
-  /** The session in which the pause was recorded. */
+  /** "button": recorded with pause/resume; "gap": time between two work sessions. */
+  kind: 'button' | 'gap';
+  /** Button pause: the session it belongs to. Gap: the session after the gap. */
   sessionId?: string;
+  /** Gap only: confirmed by the user (otherwise detected automatically). */
+  confirmed?: boolean;
   /** The pause is still running. */
   running?: boolean;
   /** Time used for ordering in a timeline. */
@@ -75,27 +82,45 @@ export interface PauseItem {
 }
 
 /**
- * Breaks of one day as recorded with the pause button (with times), plus the
- * total of older or manually edited breaks without times. Gaps between
- * sessions are not breaks.
+ * Breaks of one day:
+ *  - pauses recorded with the pause button (with times), plus the total of
+ *    older or manually edited breaks without times,
+ *  - gaps of at least 2 minutes between two consecutive work sessions. They
+ *    count as an automatic break until the user confirms them or marks them
+ *    as "no break" (`gapBefore = 'off'` on the following session).
  */
-export function pausesOfDay(sessions: Session[], now: number): PauseItem[] {
+export function pausesOfDay(sessions: Session[], isWork: (s: Session) => boolean, now: number): PauseItem[] {
   const items: PauseItem[] = [];
-  for (const s of sessions) {
-    if (s.deleted) continue;
+  const sorted = sessions.filter((s) => !s.deleted).sort((a, b) => a.start - b.start);
+  for (const s of sorted) {
     let recorded = 0;
     for (const p of s.pauses ?? []) {
       const minutes = (p.end - p.start) / MS_PER_MINUTE;
       recorded += minutes;
-      items.push({ start: p.start, end: p.end, minutes, sessionId: s.id, at: p.start });
+      items.push({ kind: 'button', start: p.start, end: p.end, minutes, sessionId: s.id, at: p.start });
     }
     const rest = s.breakMinutes - recorded;
     if (rest >= 0.5) {
-      items.push({ start: null, end: null, minutes: rest, sessionId: s.id, at: s.end ?? now });
+      items.push({ kind: 'button', start: null, end: null, minutes: rest, sessionId: s.id, at: s.end ?? now });
     }
     if (s.end === null && s.pausedAt !== null) {
-      items.push({ start: s.pausedAt, end: null, minutes: (now - s.pausedAt) / MS_PER_MINUTE, sessionId: s.id, running: true, at: s.pausedAt });
+      items.push({ kind: 'button', start: s.pausedAt, end: null, minutes: (now - s.pausedAt) / MS_PER_MINUTE, sessionId: s.id, running: true, at: s.pausedAt });
     }
+  }
+  for (let i = 1; i < sorted.length; i++) {
+    const a = sorted[i - 1];
+    const b = sorted[i];
+    const aEnd = a.end ?? now;
+    if (!isWork(a) || !isWork(b) || b.gapBefore === 'off' || b.start - aEnd < CONTINUITY_MS) continue;
+    items.push({
+      kind: 'gap',
+      start: aEnd,
+      end: b.start,
+      minutes: (b.start - aEnd) / MS_PER_MINUTE,
+      sessionId: b.id,
+      confirmed: b.gapBefore === 'pause',
+      at: aEnd,
+    });
   }
   return items.sort((x, y) => x.at - y.at);
 }

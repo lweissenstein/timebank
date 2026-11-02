@@ -6,6 +6,7 @@ import { useI18n } from '../i18n';
 import { useAppData } from './AppData';
 import { download, labelFor, Segmented } from './common';
 import { Donut } from './Donut';
+import { GapDialog } from './GapDialog';
 import { SessionDialog } from './SessionDialog';
 
 const PAGE_DAYS = 21;
@@ -29,6 +30,7 @@ export function LogPage() {
   const [days, setDays] = useState(PAGE_DAYS);
   const [editing, setEditing] = useState<Session | 'new' | null>(null);
   const [view, setViewState] = useState<View>(loadView);
+  const [gap, setGap] = useState<PauseItem | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const setView = (v: View) => {
     setViewState(v);
@@ -139,7 +141,7 @@ export function LogPage() {
           .filter((s) => !counting(s))
           .reduce((sum, s) => sum + sessionWorkMs(s, now), 0);
         const open = expanded.has(day);
-        const pauses = pausesOfDay(list, now);
+        const pauses = pausesOfDay(list, counting, now);
         const pauseMinutes = pauses.reduce((sum, p) => sum + p.minutes, 0);
         // Pauses only make sense on the unfiltered timeline of a day.
         const timeline: (
@@ -228,6 +230,7 @@ export function LogPage() {
                   if (entry.kind === 'pause') {
                     const p = entry.p;
                     const owner = p.sessionId ? list.find((x) => x.id === p.sessionId) : undefined;
+                    const auto = p.kind === 'gap' && !p.confirmed;
                     const content = (
                       <>
                         <span className="dot pause-dot" />
@@ -235,7 +238,9 @@ export function LogPage() {
                           <span>
                             <strong>{t('log.pause')}</strong>
                             {p.running && <span className="badge">{t('log.running')}</span>}
+                            {auto && <span className="badge auto">{t('log.pauseAutoBadge')}</span>}
                           </span>
+                          {auto && <span className="session-note">{t('log.pauseAuto')}</span>}
                         </span>
                         <span className="session-time">
                           <span>{dur(p.minutes / 60)}</span>
@@ -248,8 +253,15 @@ export function LogPage() {
                       </>
                     );
                     return (
-                      <li key={`pause-${p.at}-${p.sessionId ?? 'gap'}`} className="pause-item">
-                        {owner ? (
+                      <li
+                        key={`pause-${p.kind}-${p.at}-${p.sessionId ?? ''}`}
+                        className={`pause-item ${auto ? 'auto' : ''}`}
+                      >
+                        {p.kind === 'gap' ? (
+                          <button className="session-row" onClick={() => setGap(p)}>
+                            {content}
+                          </button>
+                        ) : owner ? (
                           <button className="session-row" onClick={() => setEditing(owner)}>
                             {content}
                           </button>
@@ -299,6 +311,7 @@ export function LogPage() {
         </button>
       )}
       <SessionDialog session={editing} onClose={() => setEditing(null)} />
+      <GapDialog gap={gap} onClose={() => setGap(null)} />
     </div>
   );
 }

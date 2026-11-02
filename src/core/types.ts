@@ -119,6 +119,12 @@ export interface Session {
    * sessions only have the total in `breakMinutes`.
    */
   pauses?: { start: number; end: number }[];
+  /**
+   * How the gap right before this session (after the previous work session of
+   * the day) is treated: undefined = automatic break (to be confirmed),
+   * 'pause' = confirmed break, 'off' = not a break (e.g. free time).
+   */
+  gapBefore?: 'pause' | 'off';
   note: string;
   thesisRelevant: boolean;
   /** Id of a `Profile.workLocations` entry. */
