@@ -203,6 +203,7 @@ export const en = {
   'settings.deleteAll': 'Delete all local data',
   'settings.deleteAllConfirm': 'Really delete all local data on this device? Export a backup first.',
   'settings.imported': 'Imported.',
+  'settings.version': 'Version',
   'settings.about': 'About',
 
   'onboarding.title': 'Welcome to Timebank',

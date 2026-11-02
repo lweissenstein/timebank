@@ -10,6 +10,11 @@ export default defineConfig({
   base,
   // date-holidays ships data for all countries; the bundle is cached by the service worker.
   build: { chunkSizeWarningLimit: 2600 },
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      `${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC${process.env.GITHUB_SHA ? ` · ${process.env.GITHUB_SHA.slice(0, 7)}` : ''}`,
+    ),
+  },
   plugins: [
     react(),
     VitePWA({

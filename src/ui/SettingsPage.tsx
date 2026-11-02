@@ -181,6 +181,8 @@ export function SettingsPage() {
 
       <p className="muted small center">
         Timebank · <a href="https://github.com/lweissenstein/timebank">GitHub</a> · MIT
+        <br />
+        {t('settings.version')}: {__APP_VERSION__}
       </p>
     </div>
   );

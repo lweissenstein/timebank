@@ -205,6 +205,7 @@ export const de: Record<MessageKey, string> = {
   'settings.deleteAll': 'Alle lokalen Daten löschen',
   'settings.deleteAllConfirm': 'Wirklich alle lokalen Daten auf diesem Gerät löschen? Exportiere vorher ein Backup.',
   'settings.imported': 'Importiert.',
+  'settings.version': 'Version',
   'settings.about': 'Über',
 
   'onboarding.title': 'Willkommen bei Timebank',
