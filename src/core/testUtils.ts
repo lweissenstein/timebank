@@ -16,6 +16,7 @@ export function testProfile(overrides: Partial<Profile> = {}): Profile {
       { id: 'thesis', name: 'Thesis', color: '#a05a2c', countsAsWork: false, hidden: false, categories: [{ id: 'write', name: 'Write', hidden: false }] },
     ],
     phases: [],
+    milestones: [],
     warnings: {
       enabled: true,
       maxDailyHours: 10,

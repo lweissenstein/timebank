@@ -62,6 +62,7 @@
     { "id": "thesis", "name": "Thesis – reduce overtime", "start": "2027-03-01", "end": "2027-05-30", "plannedHoursPerWeek": 8, "areaShare": { "project-b": 1 } },
     { "id": "wind-down", "name": "Wind down to zero", "start": "2027-05-31", "end": "2027-06-30", "plannedHoursPerWeek": "zero-balance" }
   ],
+  "milestones": [{ "date": "2027-05-31", "name": "Thesis submission" }],
   "warnings": {
     "enabled": true,
     "maxDailyHours": 10,

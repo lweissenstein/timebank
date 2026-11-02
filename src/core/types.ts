@@ -71,6 +71,8 @@ export interface Profile {
   };
   areas: Area[];
   phases: Phase[];
+  /** Dates for which a balance forecast is shown, e.g. a submission deadline. */
+  milestones: { date: ISODate; name: string }[];
   warnings: {
     enabled: boolean;
     maxDailyHours: number;

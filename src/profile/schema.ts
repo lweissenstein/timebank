@@ -60,6 +60,7 @@ export const profileSchema = z
       .default({ country: '', extra: [], excluded: [] }),
     areas: z.array(area).min(1),
     phases: z.array(phase).default([]),
+    milestones: z.array(z.object({ date: isoDate, name: z.string() })).default([]),
     warnings: z
       .object({
         enabled: z.boolean().default(true),

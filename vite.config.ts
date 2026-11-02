@@ -8,6 +8,8 @@ const base = process.env.BASE_PATH ?? '/timebank/';
 
 export default defineConfig({
   base,
+  // date-holidays ships data for all countries; the bundle is cached by the service worker.
+  build: { chunkSizeWarningLimit: 2600 },
   plugins: [
     react(),
     VitePWA({
@@ -31,6 +33,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,json}'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+      },
+      devOptions: {
+        enabled: false,
       },
     }),
   ],
