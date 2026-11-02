@@ -8,3 +8,4 @@ coverage/
 personal/
 *.personal.json
 backup-*.json
+*.tsbuildinfo
