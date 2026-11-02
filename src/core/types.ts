@@ -114,6 +114,11 @@ export interface Session {
   breakMinutes: number;
   /** Set while the running session is paused. */
   pausedAt: number | null;
+  /**
+   * Recorded pause intervals (epoch ms). Optional: older or manually edited
+   * sessions only have the total in `breakMinutes`.
+   */
+  pauses?: { start: number; end: number }[];
   note: string;
   thesisRelevant: boolean;
   /** Id of a `Profile.workLocations` entry. */

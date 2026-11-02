@@ -162,6 +162,7 @@ function closePause(s: Session, now: number): Session {
   return {
     ...s,
     breakMinutes: s.breakMinutes + Math.max(0, now - s.pausedAt) / MS_PER_MINUTE,
+    pauses: [...(s.pauses ?? []), { start: s.pausedAt, end: now }],
     pausedAt: null,
   };
 }

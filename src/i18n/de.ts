@@ -52,6 +52,9 @@ export const de: Record<MessageKey, string> = {
 
   'log.viewDetail': 'Details',
   'log.viewSummary': 'Zusammengefasst',
+  'log.pause': 'Pause',
+  'log.pauseGap': 'zwischen Sessions',
+  'log.pauseNoTime': 'ohne Uhrzeit',
   'log.add': 'Eintrag nachtragen',
   'log.filterArea': 'Bereich',
   'log.thesisOnly': 'Nur Thesis-relevant',
@@ -60,7 +63,7 @@ export const de: Record<MessageKey, string> = {
   'log.more': 'Mehr anzeigen',
   'log.exportNotes': 'Notizen exportieren',
   'log.running': 'läuft',
-  'log.breakShort': 'Pause {min} min',
+  'log.breakShort': 'Pause {min}',
 
   'session.new': 'Neuer Eintrag',
   'session.edit': 'Eintrag bearbeiten',

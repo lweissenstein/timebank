@@ -50,6 +50,9 @@ export const en = {
 
   'log.viewDetail': 'Details',
   'log.viewSummary': 'Summary',
+  'log.pause': 'Break',
+  'log.pauseGap': 'between sessions',
+  'log.pauseNoTime': 'no times',
   'log.add': 'Add entry',
   'log.filterArea': 'Area',
   'log.thesisOnly': 'Thesis-relevant only',
@@ -58,7 +61,7 @@ export const en = {
   'log.more': 'Show more',
   'log.exportNotes': 'Export notes',
   'log.running': 'running',
-  'log.breakShort': 'break {min} min',
+  'log.breakShort': 'break {min}',
 
   'session.new': 'New entry',
   'session.edit': 'Edit entry',

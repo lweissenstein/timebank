@@ -106,6 +106,8 @@ export function SessionDialog({ session, onClose }: { session: Session | 'new' |
         ...data,
         end: latest.end === null ? null : (endMs ?? latest.end),
         breakMinutes: unchangedBreak ? latest.breakMinutes : data.breakMinutes,
+        // A manually changed total no longer matches the recorded intervals.
+        pauses: unchangedBreak ? latest.pauses : undefined,
       });
     }
     onClose();

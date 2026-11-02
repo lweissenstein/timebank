@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toISODate } from '../core/dates';
 import type { Session } from '../core/types';
-import { breakMinutesOf, sessionWorkMs } from '../core/worktime';
+import { pausesOfDay, sessionWorkMs, type PauseItem } from '../core/worktime';
 import { useI18n } from '../i18n';
 import { useAppData } from './AppData';
 import { download, labelFor, Segmented } from './common';
@@ -38,6 +38,7 @@ export function LogPage() {
       /* ignore */
     }
   };
+  const showPauses = !areaFilter && !thesisOnly && !query.trim();
   const toggleDay = (day: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -138,6 +139,15 @@ export function LogPage() {
           .filter((s) => !counting(s))
           .reduce((sum, s) => sum + sessionWorkMs(s, now), 0);
         const open = expanded.has(day);
+        const pauses = pausesOfDay(list, counting, now);
+        const pauseMinutes = pauses.reduce((sum, p) => sum + p.minutes, 0);
+        // Pauses only make sense on the unfiltered timeline of a day.
+        const timeline: (
+          { kind: 'session'; s: Session; at: number } | { kind: 'pause'; p: PauseItem; at: number }
+        )[] = [
+          ...list.map((s) => ({ kind: 'session' as const, s, at: s.start })),
+          ...(showPauses ? pauses.map((p) => ({ kind: 'pause' as const, p, at: p.at })) : []),
+        ].sort((a, b) => b.at - a.at || (a.kind === 'pause' ? -1 : 1));
         const byArea = profile.areas
           .map((a) => ({
             id: a.id,
@@ -169,14 +179,30 @@ export function LogPage() {
                         {dur(a.ms / 3_600_000)}
                       </span>
                     ))}
+                    {showPauses && pauseMinutes >= 1 && (
+                      <span className="legend-item">
+                        <span className="dot pause-dot" /> {t('log.pause')} {dur(pauseMinutes / 60)}
+                      </span>
+                    )}
                   </span>
                 </span>
                 <Donut
-                  segments={byArea.map((a) => ({
-                    value: a.ms,
-                    color: a.color,
-                    label: `${a.name}: ${dur(a.ms / 3_600_000)}`,
-                  }))}
+                  segments={[
+                    ...byArea.map((a) => ({
+                      value: a.ms,
+                      color: a.color,
+                      label: `${a.name}: ${dur(a.ms / 3_600_000)}`,
+                    })),
+                    ...(showPauses && pauseMinutes >= 1
+                      ? [
+                          {
+                            value: pauseMinutes * 60_000,
+                            color: 'var(--pause)',
+                            label: `${t('log.pause')}: ${dur(pauseMinutes / 60)}`,
+                          },
+                        ]
+                      : []),
+                  ]}
                 />
               </button>
             ) : (
@@ -192,15 +218,51 @@ export function LogPage() {
                 <span className="day-sum">
                   <strong>{dur(work / 3_600_000)}</strong>
                   {other > 0 && ` + ${dur(other / 3_600_000)} ${t('common.notCounted')}`} ·{' '}
-                  {t('log.breakShort', {
-                    min: Math.round(breakMinutesOf(list.filter(counting), now)),
-                  })}
+                  {t('log.breakShort', { min: dur(pauseMinutes / 60) })}
                 </span>
               </header>
             )}
             {(view === 'detail' || open) && (
               <ul className="session-list">
-                {list.map((s) => {
+                {timeline.map((entry) => {
+                  if (entry.kind === 'pause') {
+                    const p = entry.p;
+                    const owner = p.sessionId ? list.find((x) => x.id === p.sessionId) : undefined;
+                    const content = (
+                      <>
+                        <span className="dot pause-dot" />
+                        <span className="session-main">
+                          <span>
+                            <strong>{t('log.pause')}</strong>
+                            {p.running && <span className="badge">{t('log.running')}</span>}
+                          </span>
+                          {!p.sessionId && (
+                            <span className="session-note">{t('log.pauseGap')}</span>
+                          )}
+                        </span>
+                        <span className="session-time">
+                          <span>{dur(p.minutes / 60)}</span>
+                          <span className="muted">
+                            {p.start === null
+                              ? t('log.pauseNoTime')
+                              : `${time(p.start)}–${p.end === null ? t('log.running') : time(p.end)}`}
+                          </span>
+                        </span>
+                      </>
+                    );
+                    return (
+                      <li key={`pause-${p.at}-${p.sessionId ?? 'gap'}`} className="pause-item">
+                        {owner ? (
+                          <button className="session-row" onClick={() => setEditing(owner)}>
+                            {content}
+                          </button>
+                        ) : (
+                          <div className="session-row">{content}</div>
+                        )}
+                      </li>
+                    );
+                  }
+                  const s = entry.s;
                   const l = labelFor(profile, s.areaId, s.categoryId);
                   return (
                     <li key={s.id}>

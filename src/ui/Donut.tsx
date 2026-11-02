@@ -29,7 +29,7 @@ export function Donut({ segments, size = 52, thickness = 9 }: { segments: DonutS
               cy={size / 2}
               r={r}
               fill="none"
-              stroke={p.color}
+              style={{ stroke: p.color }}
               strokeWidth={thickness}
               strokeDasharray={`${visible} ${circumference - visible}`}
               strokeDashoffset={-offset}

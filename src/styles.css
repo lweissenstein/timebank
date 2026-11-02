@@ -15,6 +15,8 @@
   --vacation: #cfe6dc;
   --sick: #f3d9d4;
   --holiday: #f6e7b8;
+  --pause: #9aa0a8;
+  --pause-bg: #eef0f2;
   --radius: 14px;
   --tabbar-h: 64px;
   color-scheme: light;
@@ -38,6 +40,8 @@
     --vacation: #1f4136;
     --sick: #4a2a25;
     --holiday: #4a3f17;
+    --pause: #7d848d;
+    --pause-bg: #23262a;
     color-scheme: dark;
   }
 }
@@ -955,4 +959,18 @@ details summary {
 }
 .donut {
   flex: none;
+}
+
+.pause-dot {
+  background: var(--pause);
+}
+.pause-item {
+  background: repeating-linear-gradient(-45deg, var(--pause-bg), var(--pause-bg) 6px, transparent 6px, transparent 12px);
+}
+.pause-item .session-main strong {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+div.session-row {
+  cursor: default;
 }

@@ -60,3 +60,51 @@ export function breakMinutesOf(sessions: Session[], now: number): number {
   }
   return ms / MS_PER_MINUTE;
 }
+
+export interface PauseItem {
+  /** Start/end in epoch ms; null if only the total is known. */
+  start: number | null;
+  end: number | null;
+  minutes: number;
+  /** Set for pauses recorded inside a session. */
+  sessionId?: string;
+  /** The pause is still running. */
+  running?: boolean;
+  /** Time used for ordering in a timeline. */
+  at: number;
+}
+
+/**
+ * All pauses of one day:
+ *  - pauses recorded inside sessions (with times if known, otherwise the
+ *    remaining total without times),
+ *  - gaps between two consecutive work sessions (no other session in between).
+ */
+export function pausesOfDay(sessions: Session[], isWork: (s: Session) => boolean, now: number): PauseItem[] {
+  const items: PauseItem[] = [];
+  const sorted = [...sessions].filter((s) => !s.deleted).sort((a, b) => a.start - b.start);
+  for (const s of sorted) {
+    let recorded = 0;
+    for (const p of s.pauses ?? []) {
+      const minutes = (p.end - p.start) / MS_PER_MINUTE;
+      recorded += minutes;
+      items.push({ start: p.start, end: p.end, minutes, sessionId: s.id, at: p.start });
+    }
+    const rest = s.breakMinutes - recorded;
+    if (rest >= 0.5) {
+      items.push({ start: null, end: null, minutes: rest, sessionId: s.id, at: s.end ?? now });
+    }
+    if (s.end === null && s.pausedAt !== null) {
+      items.push({ start: s.pausedAt, end: null, minutes: (now - s.pausedAt) / MS_PER_MINUTE, sessionId: s.id, running: true, at: s.pausedAt });
+    }
+  }
+  for (let i = 1; i < sorted.length; i++) {
+    const a = sorted[i - 1];
+    const b = sorted[i];
+    const aEnd = a.end ?? now;
+    if (isWork(a) && isWork(b) && b.start > aEnd) {
+      items.push({ start: aEnd, end: b.start, minutes: (b.start - aEnd) / MS_PER_MINUTE, at: aEnd });
+    }
+  }
+  return items.sort((x, y) => x.at - y.at);
+}
