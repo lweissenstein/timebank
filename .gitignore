@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.local
+.DS_Store
+# personal profiles and data never go into the public repo
+personal/
+*.personal.json
+backup-*.json

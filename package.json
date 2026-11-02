@@ -1,0 +1,54 @@
+{
+  "name": "timebank",
+  "version": "1.0.0",
+  "description": "Offline-first PWA for tracking working hours against a weekly target, with overtime balance, phase planning and forecasts.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "tsc -b"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lweissenstein/timebank.git"
+  },
+  "keywords": [],
+  "author": "lweissenstein",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lweissenstein/timebank/issues"
+  },
+  "homepage": "https://lweissenstein.github.io/timebank/",
+  "dependencies": {
+    "date-holidays": "^3.38.0",
+    "dexie": "^4.4.7",
+    "dexie-react-hooks": "^4.4.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "recharts": "^3.10.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "fake-indexeddb": "^6.2.7",
+    "jsdom": "^30.1.3",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.5"
+  },
+  "private": true,
+  "type": "module"
+}
