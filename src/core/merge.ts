@@ -30,6 +30,39 @@ export function mergeById<T extends Versioned>(a: T[], b: T[]): T[] {
   return [...map.values()];
 }
 
+/**
+ * Sessions merge like other records (newest wins), with one exception:
+ * a stop always wins. If one device stopped a session while the other still
+ * has it running (and changed e.g. its note later), the result keeps the newer
+ * fields but takes the end and breaks from the stopped version.
+ */
+export function mergeSessions(a: Session[], b: Session[]): Session[] {
+  const map = new Map<string, Session>();
+  for (const r of a) map.set(r.id, r);
+  for (const r of b) {
+    const existing = map.get(r.id);
+    if (!existing) {
+      map.set(r.id, r);
+      continue;
+    }
+    const newer = r.updatedAt > existing.updatedAt ? r : existing;
+    const older = newer === r ? existing : r;
+    if (newer.end === null && older.end !== null && !newer.deleted) {
+      map.set(r.id, {
+        ...newer,
+        end: older.end,
+        pausedAt: null,
+        breakMinutes: older.breakMinutes,
+        pauses: older.pauses,
+        updatedAt: newer.updatedAt + 1,
+      });
+    } else {
+      map.set(r.id, newer);
+    }
+  }
+  return [...map.values()];
+}
+
 export function mergeSnapshots(local: Snapshot, remote: Snapshot | null): Snapshot {
   if (!remote) return local;
   let profile = local.profile;
@@ -41,7 +74,7 @@ export function mergeSnapshots(local: Snapshot, remote: Snapshot | null): Snapsh
     version: 1,
     exportedAt: Date.now(),
     profile,
-    sessions: mergeById(local.sessions, remote.sessions),
+    sessions: mergeSessions(local.sessions, remote.sessions),
     absences: mergeById(local.absences, remote.absences),
   };
 }

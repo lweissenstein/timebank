@@ -65,6 +65,10 @@ export function startAutoSync(): void {
     if (document.visibilityState === 'visible') scheduleSync(500);
   });
   window.addEventListener('online', () => scheduleSync(500));
+  // Pull changes from other devices regularly while the app is open.
+  window.setInterval(() => {
+    if (document.visibilityState === 'visible' && navigator.onLine && !state.busy) void syncNow();
+  }, 60_000);
   scheduleSync(300);
 }
 
