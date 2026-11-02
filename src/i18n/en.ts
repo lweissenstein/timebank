@@ -53,6 +53,7 @@ export const en = {
   'log.pause': 'Break',
   'log.pauseGap': 'between sessions',
   'log.pauseNoTime': 'no times',
+  'log.pauseIn': 'in {area}',
   'log.add': 'Add entry',
   'log.filterArea': 'Area',
   'log.thesisOnly': 'Thesis-relevant only',

@@ -55,6 +55,7 @@ export const de: Record<MessageKey, string> = {
   'log.pause': 'Pause',
   'log.pauseGap': 'zwischen Sessions',
   'log.pauseNoTime': 'ohne Uhrzeit',
+  'log.pauseIn': 'in {area}',
   'log.add': 'Eintrag nachtragen',
   'log.filterArea': 'Bereich',
   'log.thesisOnly': 'Nur Thesis-relevant',

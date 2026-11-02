@@ -236,9 +236,13 @@ export function LogPage() {
                             <strong>{t('log.pause')}</strong>
                             {p.running && <span className="badge">{t('log.running')}</span>}
                           </span>
-                          {!p.sessionId && (
-                            <span className="session-note">{t('log.pauseGap')}</span>
-                          )}
+                          <span className="session-note">
+                            {owner
+                              ? t('log.pauseIn', {
+                                  area: labelFor(profile, owner.areaId, owner.categoryId).area,
+                                })
+                              : t('log.pauseGap')}
+                          </span>
                         </span>
                         <span className="session-time">
                           <span>{dur(p.minutes / 60)}</span>
