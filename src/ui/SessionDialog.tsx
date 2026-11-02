@@ -27,6 +27,7 @@ interface Form {
   breakMinutes: number;
   note: string;
   thesisRelevant: boolean;
+  locationId: string;
 }
 
 /** Edit an existing session or add one manually (`session === 'new'`). */
@@ -50,6 +51,7 @@ export function SessionDialog({ session, onClose }: { session: Session | 'new' |
         breakMinutes: 0,
         note: '',
         thesisRelevant: false,
+        locationId: profile.workLocations?.[0]?.id ?? '',
       });
     } else {
       setForm({
@@ -61,6 +63,7 @@ export function SessionDialog({ session, onClose }: { session: Session | 'new' |
         breakMinutes: Math.round(session.breakMinutes),
         note: session.note,
         thesisRelevant: session.thesisRelevant,
+        locationId: session.locationId ?? '',
       });
     }
   }, [session, profile, today]);
@@ -89,6 +92,7 @@ export function SessionDialog({ session, onClose }: { session: Session | 'new' |
       breakMinutes: Math.max(0, form.breakMinutes),
       note: form.note.trim(),
       thesisRelevant: form.thesisRelevant,
+      locationId: form.locationId || undefined,
     };
     if (session === 'new') await repo.addManualSession(data);
     else await repo.saveSession({ ...session, ...data });
@@ -154,6 +158,19 @@ export function SessionDialog({ session, onClose }: { session: Session | 'new' |
               ))}
           </select>
         </label>
+        {(profile.workLocations?.length ?? 0) > 0 && (
+          <label>
+            {t('track.location')}
+            <select value={form.locationId} onChange={(e) => update({ locationId: e.target.value })}>
+              <option value="">–</option>
+              {profile.workLocations!.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
           {t('session.note')}
           <textarea rows={3} value={form.note} onChange={(e) => update({ note: e.target.value })} />

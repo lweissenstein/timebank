@@ -6,7 +6,7 @@ import { sessionBreakMs, sessionWorkMs } from '../core/worktime';
 import { repo } from '../data/repo';
 import { useI18n } from '../i18n';
 import { useAppData, useNow } from './AppData';
-import { Card, formatDuration, labelFor, Stat, tone } from './common';
+import { Card, formatDuration, labelFor, Segmented, Stat, tone } from './common';
 import { NoteDialog } from './NoteDialog';
 import { WarningList } from './WarningList';
 
@@ -15,11 +15,21 @@ export function TrackPage() {
   const { profile, running, ledger, today, sessions } = useAppData();
   const now = useNow(1000);
   const [finished, setFinished] = useState<Session | null>(null);
+  const locations = profile.workLocations ?? [];
+  const [preferredLocation, setPreferredLocation] = useState(loadLocation);
+  const location = locations.some((l) => l.id === preferredLocation) ? preferredLocation : locations[0]?.id;
+  const shownLocation = running ? (running.locationId ?? '') : (location ?? '');
 
   async function start(areaId: string, categoryId: string) {
     if (running && running.areaId === areaId && running.categoryId === categoryId) return;
-    const stopped = await repo.start(areaId, categoryId);
+    const stopped = await repo.start(areaId, categoryId, Date.now(), running?.locationId ?? location);
     if (stopped) setFinished(stopped);
+  }
+
+  async function chooseLocation(id: string) {
+    setPreferredLocation(id);
+    saveLocation(id);
+    if (running) await repo.setRunningLocation(id);
   }
 
   async function stop() {
@@ -56,6 +66,7 @@ export function TrackPage() {
             </div>
             <div className="timer-meta">
               {running.pausedAt ? t('track.paused') : t('track.running')} · {t('track.since', { time: time(running.start) })}
+              {running.locationId && ` · ${locations.find((l) => l.id === running.locationId)?.name ?? running.locationId}`}
               {sessionBreakMs(running, now) > 0 && ` · ${t('track.break', { min: Math.round(sessionBreakMs(running, now) / 60000) })}`}
             </div>
             {profile.warnings.enabled && isUnusuallyLong(profile, running, now) && (
@@ -82,6 +93,13 @@ export function TrackPage() {
       </div>
 
       {profile.warnings.enabled && <WarningList warnings={todayWarnings} />}
+
+      {locations.length > 0 && (
+        <div className="location">
+          <span className="hint">{t('track.location')}</span>
+          <Segmented value={shownLocation} onChange={chooseLocation} options={locations.map((l) => ({ value: l.id, label: l.name }))} />
+        </div>
+      )}
 
       <p className="hint">{t('track.tapToSwitch')}</p>
       {profile.areas
@@ -123,4 +141,22 @@ export function TrackPage() {
       <NoteDialog session={finished} onClose={() => setFinished(null)} />
     </div>
   );
+}
+
+const LOCATION_KEY = 'timebank.location';
+
+function loadLocation(): string | undefined {
+  try {
+    return localStorage.getItem(LOCATION_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveLocation(id: string) {
+  try {
+    localStorage.setItem(LOCATION_KEY, id);
+  } catch {
+    /* ignore */
+  }
 }

@@ -1,6 +1,6 @@
 import { MS_PER_MINUTE, toISODate } from './dates';
 import type { WeekTotals } from './ledger';
-import type { Area, Session } from './types';
+import type { Area, Session, WorkLocation } from './types';
 import { sessionWorkMs } from './worktime';
 
 export interface CsvOptions {
@@ -33,10 +33,12 @@ export function sessionsToCsv(
   areas: Area[],
   now: number,
   opts: CsvOptions = CSV_DEFAULT,
+  locations: WorkLocation[] = [],
 ): string {
+  const locationName = new Map(locations.map((l) => [l.id, l.name]));
   const areaById = new Map(areas.map((a) => [a.id, a]));
   const rows: (string | number | boolean)[][] = [
-    ['date', 'start', 'end', 'area', 'category', 'counts_as_work', 'break_minutes', 'hours', 'thesis_relevant', 'note'],
+    ['date', 'start', 'end', 'area', 'category', 'counts_as_work', 'break_minutes', 'hours', 'thesis_relevant', 'note', 'location'],
   ];
   for (const s of [...sessions].filter((x) => !x.deleted).sort((a, b) => a.start - b.start)) {
     const area = areaById.get(s.areaId);
@@ -52,6 +54,7 @@ export function sessionsToCsv(
       sessionWorkMs(s, now) / (60 * MS_PER_MINUTE),
       s.thesisRelevant,
       s.note,
+      s.locationId ? (locationName.get(s.locationId) ?? s.locationId) : '',
     ]);
   }
   return toCsv(rows, opts);

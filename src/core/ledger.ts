@@ -1,4 +1,5 @@
 import {
+  addDays,
   eachDay,
   eachWeekStart,
   endOfWeek,
@@ -172,9 +173,25 @@ export class Ledger {
     );
   }
 
+  /** Sum of balance adjustments dated on or before `date`. */
+  adjustmentsUntil(date: ISODate): number {
+    return (this.profile.balanceAdjustments ?? []).filter((a) => a.date <= date).reduce((s, a) => s + a.hours, 0);
+  }
+
+  /** Balance adjustments dated exactly on `date`. */
+  adjustmentsOn(date: ISODate): number {
+    return (this.profile.balanceAdjustments ?? []).filter((a) => a.date === date).reduce((s, a) => s + a.hours, 0);
+  }
+
+  /** Balance on the morning of the first tracked day (start balance + earlier adjustments). */
+  get openingBalance(): number {
+    return this.profile.period.startBalanceHours + this.adjustmentsUntil(addDays(this.start, -1));
+  }
+
   /** Overtime balance at the end of the given day. */
   balanceAt(date: ISODate): number {
-    if (date < this.start) return this.profile.period.startBalanceHours;
-    return this.profile.period.startBalanceHours + this.range(this.start, date).delta;
+    const base = this.profile.period.startBalanceHours + this.adjustmentsUntil(date);
+    if (date < this.start) return base;
+    return base + this.range(this.start, date).delta;
   }
 }

@@ -34,6 +34,17 @@ export interface Phase {
   note?: string;
 }
 
+export interface BalanceAdjustment {
+  date: ISODate;
+  hours: number;
+  note?: string;
+}
+
+export interface WorkLocation {
+  id: string;
+  name: string;
+}
+
 export interface BreakRule {
   /** Applies when daily working time exceeds this many hours. */
   afterHours: number;
@@ -71,6 +82,14 @@ export interface Profile {
   };
   areas: Area[];
   phases: Phase[];
+  /**
+   * Manual balance corrections (hours, may be negative), e.g. overtime earned
+   * before the tracking period. They change the balance on their date but are
+   * not part of target/actual hours.
+   */
+  balanceAdjustments?: BalanceAdjustment[];
+  /** Optional work locations selectable per session, e.g. office / remote. */
+  workLocations?: WorkLocation[];
   /** Dates for which a balance forecast is shown, e.g. a submission deadline. */
   milestones: { date: ISODate; name: string }[];
   warnings: {
@@ -95,6 +114,8 @@ export interface Session {
   pausedAt: number | null;
   note: string;
   thesisRelevant: boolean;
+  /** Id of a `Profile.workLocations` entry. */
+  locationId?: string;
   updatedAt: number;
   deleted?: boolean;
 }

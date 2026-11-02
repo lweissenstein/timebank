@@ -24,7 +24,14 @@
 | M9 | GitHub sync | done |
 | M10 | Phone test, polish | in progress (user testing) |
 
+## Changes after launch
+- Headline balance shows the state at the end of yesterday; today is shown separately.
+- Daily break total in the log.
+- Category migrations (`src/core/migrate.ts`, `npm run migrate`, *Settings → Apply migration*).
+- Balance adjustments (`balanceAdjustments`) and work locations (`workLocations`, `Session.locationId`).
+
 ## Later
+- Optional per-category default for "thesis-relevant" (`thesisDefault`).
 - Excel export into the employer template (ExcelJS; needs the template). `core/worktime.workByDay` and the session data already give per-day start/end/break.
 - Optional: Capacitor wrapper for a notification with start/stop controls.
 - Optional: lazy-load holiday data to reduce the bundle size.

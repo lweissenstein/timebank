@@ -798,3 +798,19 @@ details summary {
 .nowrap {
   white-space: nowrap;
 }
+
+.location {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.location-list {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+.location-list li {
+  display: flex;
+  justify-content: space-between;
+}

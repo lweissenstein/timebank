@@ -7,6 +7,7 @@ import { useI18n, type Lang } from '../i18n';
 import { useAppData } from './AppData';
 import { AreasEditor } from './AreasEditor';
 import { Card, download, pickTextFile } from './common';
+import { MigrationButton } from './MigrationButton';
 import { exportProfile, ImportProfileButton, loadExampleProfile, ProfileJsonDialog } from './ProfileTools';
 import { SyncSettings } from './SyncSettings';
 
@@ -150,12 +151,13 @@ export function SettingsPage() {
           <button className="btn" onClick={importBackup}>
             {t('settings.importBackup')}
           </button>
-          <button className="btn" onClick={() => download(`timebank-sessions-${stamp}.csv`, sessionsToCsv(sessions, profile.areas, now, csvOpts), 'text/csv')}>
+          <button className="btn" onClick={() => download(`timebank-sessions-${stamp}.csv`, sessionsToCsv(sessions, profile.areas, now, csvOpts, profile.workLocations), 'text/csv')}>
             {t('settings.csvSessions')}
           </button>
           <button className="btn" onClick={exportWeeks}>
             {t('settings.csvWeeks')}
           </button>
+          <MigrationButton />
         </div>
         <label className="check">
           <input type="checkbox" checked={germanCsv} onChange={(e) => setGermanCsv(e.target.checked)} />

@@ -56,3 +56,34 @@ export function breakdown(
   result.sort((a, b) => (order.get(a.areaId) ?? 99) - (order.get(b.areaId) ?? 99));
   return { workHours, allHours, areas: result };
 }
+
+export interface LocationHours {
+  /** Location id, or '' for sessions without a location. */
+  locationId: string;
+  hours: number;
+  /** Days with at least one counted session at this location. */
+  days: number;
+}
+
+/** Working hours (counting areas only) and days per work location in a date range. */
+export function locationBreakdown(
+  areas: Area[],
+  sessions: Session[],
+  from: ISODate,
+  to: ISODate,
+  now: number,
+): LocationHours[] {
+  const counting = new Set(areas.filter((a) => a.countsAsWork).map((a) => a.id));
+  const hours = new Map<string, number>();
+  const days = new Map<string, Set<ISODate>>();
+  for (const s of sessions) {
+    if (s.deleted || !counting.has(s.areaId)) continue;
+    const loc = s.locationId ?? '';
+    for (const part of splitSessionByDay(s, now)) {
+      if (part.date < from || part.date > to) continue;
+      hours.set(loc, (hours.get(loc) ?? 0) + part.ms / MS_PER_HOUR);
+      days.set(loc, (days.get(loc) ?? new Set()).add(part.date));
+    }
+  }
+  return [...hours].map(([locationId, h]) => ({ locationId, hours: h, days: days.get(locationId)?.size ?? 0 }));
+}

@@ -23,6 +23,9 @@ where you will end up.
 - **Your data, your control:** everything is stored in the browser (IndexedDB). You
   can export a JSON backup and CSV, and optionally sync through a private GitHub
   repository.
+- **Work locations** (e.g. office / remote) per session, with hours and days per location.
+- **Balance corrections:** dated adjustments, e.g. overtime carried over from before the period.
+- **Migrations:** reproducible renaming/re-assignment of categories without losing history (see [`migrations/`](migrations/README.md)).
 - English and German UI.
 
 ## Profiles
@@ -43,7 +46,9 @@ on first start. Keep your personal profile out of this repo (`*.personal.json` a
   "areas": [{ "id": "thesis", "name": "Thesis", "countsAsWork": false, "categories": [] }],
   "phases": [{ "id": "end", "name": "Wind down", "start": "2027-06-01", "end": "2027-06-30",
                "plannedHoursPerWeek": "zero-balance" }],
-  "milestones": [{ "date": "2027-05-31", "name": "Submission" }]
+  "milestones": [{ "date": "2027-05-31", "name": "Submission" }],
+  "balanceAdjustments": [{ "date": "2026-12-31", "hours": 5, "note": "carry-over" }],
+  "workLocations": [{ "id": "office", "name": "Office" }, { "id": "remote", "name": "Remote" }]
 }
 ```
 

@@ -94,6 +94,7 @@ export function LogPage() {
                         <span>
                           <strong>{l.area}</strong> · {l.category}
                           {s.thesisRelevant && <span className="badge">Thesis</span>}
+                          {s.locationId && <span className="badge">{profile.workLocations?.find((l) => l.id === s.locationId)?.name ?? s.locationId}</span>}
                         </span>
                         {s.note && <span className="session-note">{s.note}</span>}
                       </span>

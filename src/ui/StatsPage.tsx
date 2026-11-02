@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { addDays, endOfMonth, endOfWeek, isoWeek, maxDate, minDate, startOfMonth, startOfWeek, type ISODate } from '../core/dates';
 import { balanceCurve, forecast, phaseAt, requiredToBalance } from '../core/plan';
-import { breakdown } from '../core/reports';
+import { breakdown, locationBreakdown } from '../core/reports';
 import { dayWarnings } from '../core/warnings';
 import { useI18n } from '../i18n';
 import { useAppData } from './AppData';
@@ -52,6 +52,8 @@ export function StatsPage() {
   }
   const totals = ledger.range(from, to);
   const parts = breakdown(profile.areas, sessions, from, to, now);
+  const byLocation = (profile.workLocations?.length ?? 0) > 0 ? locationBreakdown(profile.areas, sessions, from, to, now) : [];
+  const adjustments = profile.balanceAdjustments ?? [];
   const maxArea = Math.max(1, ...parts.areas.map((a) => a.hours));
 
   function step(dir: -1 | 1) {
@@ -189,9 +191,35 @@ export function StatsPage() {
                 })}
               </div>
             )}
+            {byLocation.length > 0 && (
+              <ul className="plain location-list">
+                {byLocation.map((l) => (
+                  <li key={l.locationId}>
+                    <span>{profile.workLocations?.find((x) => x.id === l.locationId)?.name ?? t('stats.noLocation')}</span>
+                    <span className="muted">
+                      {num(l.hours)} h · {t('stats.days', { n: l.days })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </>
         )}
       </Card>
+
+      {adjustments.length > 0 && (
+        <Card title={t('stats.adjustments')}>
+          <ul className="plain">
+            {adjustments.map((a, i) => (
+              <li key={i}>
+                {date(a.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}: <strong className={tone(a.hours)}>{signed(a.hours)}</strong>
+                {a.note && <span className="muted"> – {a.note}</span>}
+              </li>
+            ))}
+          </ul>
+          <p className="hint">{t('stats.adjustmentsHint')}</p>
+        </Card>
+      )}
 
       <Card title={t('stats.weeks')}>
         <div className="table-wrap">

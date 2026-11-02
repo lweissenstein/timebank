@@ -60,6 +60,8 @@ export const profileSchema = z
       .default({ country: '', extra: [], excluded: [] }),
     areas: z.array(area).min(1),
     phases: z.array(phase).default([]),
+    balanceAdjustments: z.array(z.object({ date: isoDate, hours: z.number(), note: z.string().optional() })).default([]),
+    workLocations: z.array(z.object({ id, name: z.string().min(1) })).default([]),
     milestones: z.array(z.object({ date: isoDate, name: z.string() })).default([]),
     warnings: z
       .object({

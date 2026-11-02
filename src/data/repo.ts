@@ -1,5 +1,6 @@
 import { MS_PER_MINUTE, type ISODate } from '../core/dates';
 import { isSnapshot, mergeSnapshots, type Snapshot } from '../core/merge';
+import { applyMigration, type Migration } from '../core/migrate';
 import type { Absence, AbsenceType, Profile, Session } from '../core/types';
 import { db, newId, type TimebankDB } from './db';
 
@@ -30,7 +31,7 @@ export class Repository {
    * Starts tracking in an area/category. A running session is stopped first,
    * so switching is a single action. Returns the session that was stopped.
    */
-  async start(areaId: string, categoryId: string, now = Date.now()): Promise<Session | undefined> {
+  async start(areaId: string, categoryId: string, now = Date.now(), locationId?: string): Promise<Session | undefined> {
     return this.store.transaction('rw', this.store.sessions, async () => {
       const stopped = await this.stopInternal(now);
       await this.store.sessions.add({
@@ -43,6 +44,7 @@ export class Repository {
         pausedAt: null,
         note: '',
         thesisRelevant: false,
+        ...(locationId ? { locationId } : {}),
         updatedAt: now,
       });
       return stopped;
@@ -66,6 +68,23 @@ export class Repository {
     if (!s) return;
     const next = s.pausedAt === null ? { ...s, pausedAt: now } : closePause(s, now);
     await this.store.sessions.put({ ...next, updatedAt: now });
+  }
+
+  /** Changes the work location of the running session. */
+  async setRunningLocation(locationId: string | undefined): Promise<void> {
+    const s = await this.running();
+    if (s) await this.store.sessions.put({ ...s, locationId, updatedAt: Date.now() });
+  }
+
+  /**
+   * Applies a category migration to all local data. Returns the snapshot taken
+   * before (for the backup) and after, plus the migration report.
+   */
+  async migrate(migration: Migration, now = Date.now()) {
+    const before = await this.snapshot();
+    const { snapshot: after, report } = applyMigration(before, migration, now);
+    await this.restore(after);
+    return { before, after, report };
   }
 
   async saveSession(session: Session): Promise<void> {

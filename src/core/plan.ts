@@ -68,7 +68,7 @@ export function simulatePlan(ledger: Ledger, from: ISODate, startBalance: number
       } else if (phase.plannedHoursPerWeek === 'zero-balance') {
         if (!zeroBalanceRate.has(phase.id)) {
           const days = eachDay(date, minDate(phase.end, ledger.end));
-          const fixed = days.reduce((sum, d) => sum + fixedDelta(ledger, d), 0);
+          const fixed = days.reduce((sum, d) => sum + fixedDelta(ledger, d) + ledger.adjustmentsOn(d), 0);
           const freeDays = days.filter((d) => isFreeWorkday(ledger, d)).length;
           const needed = Math.max(0, -(balance + fixed));
           zeroBalanceRate.set(phase.id, freeDays > 0 ? needed / freeDays : 0);
@@ -79,7 +79,7 @@ export function simulatePlan(ledger: Ledger, from: ISODate, startBalance: number
       }
     }
     plannedWork.set(date, work);
-    balance += fixedDelta(ledger, date) + work;
+    balance += fixedDelta(ledger, date) + ledger.adjustmentsOn(date) + work;
     daily.set(date, balance);
   }
   return { daily, plannedWork, endBalance: balance };
@@ -95,12 +95,12 @@ export interface CurvePoint {
 
 /** Weekly points of the planned balance (from period start) vs. the actual balance. */
 export function balanceCurve(ledger: Ledger, todayDate: ISODate): CurvePoint[] {
-  const plan = simulatePlan(ledger, ledger.start, ledger.profile.period.startBalanceHours);
+  const plan = simulatePlan(ledger, ledger.start, ledger.openingBalance);
   const points: CurvePoint[] = [
     {
       date: addDays(ledger.start, -1),
-      planned: ledger.profile.period.startBalanceHours,
-      actual: ledger.profile.period.startBalanceHours,
+      planned: ledger.openingBalance,
+      actual: ledger.openingBalance,
     },
   ];
   for (const w of eachWeekStart(ledger.start, ledger.end)) {
@@ -170,7 +170,7 @@ export interface Requirement {
 export function requiredToBalance(ledger: Ledger, todayDate: ISODate): Requirement {
   const balanceNow = ledger.balanceAt(todayDate);
   const days = eachDay(maxDate(addDays(todayDate, 1), ledger.start), ledger.end);
-  const fixed = days.reduce((s, d) => s + fixedDelta(ledger, d), 0);
+  const fixed = days.reduce((s, d) => s + fixedDelta(ledger, d) + ledger.adjustmentsOn(d), 0);
   const freeWorkdays = days.filter((d) => isFreeWorkday(ledger, d)).length;
   const totalHours = -(balanceNow + fixed);
   const weeks = days.length / 7;
