@@ -1,0 +1,74 @@
+{
+  "$comment": "Example profile: a working student (20 h/week) who builds up overtime first and then reduces it while writing a thesis. Copy this file, adapt it and import it in the app (Settings → Profile).",
+  "version": 1,
+  "name": "Working student with thesis (example)",
+  "locale": "en",
+  "period": { "start": "2027-01-04", "end": "2027-06-30", "startBalanceHours": 0 },
+  "contract": { "weeklyHours": 20, "workdays": [1, 2, 3, 4, 5] },
+  "vacation": { "daysPerYear": 20, "proRata": true, "overrides": {} },
+  "holidays": { "country": "DE", "region": "BE", "extra": [], "excluded": [] },
+  "areas": [
+    {
+      "id": "project-a",
+      "name": "Project A",
+      "color": "#1f6f5c",
+      "countsAsWork": true,
+      "categories": [
+        { "id": "development", "name": "Development" },
+        { "id": "architecture", "name": "Concept & architecture" },
+        { "id": "meetings", "name": "Meetings & coordination" },
+        { "id": "code-review", "name": "Code review" },
+        { "id": "testing", "name": "Testing & QA" },
+        { "id": "documentation", "name": "Documentation" },
+        { "id": "research", "name": "Research" },
+        { "id": "other", "name": "Other" }
+      ]
+    },
+    {
+      "id": "project-b",
+      "name": "Project B",
+      "color": "#3b6fb6",
+      "countsAsWork": true,
+      "categories": [
+        { "id": "features", "name": "Feature development" },
+        { "id": "bugfixing", "name": "Bugfixing" },
+        { "id": "ux", "name": "UI/UX design" },
+        { "id": "testing", "name": "Testing" },
+        { "id": "refactoring", "name": "Refactoring" },
+        { "id": "release", "name": "Release & deployment" },
+        { "id": "meetings", "name": "Meetings" },
+        { "id": "documentation", "name": "Documentation" }
+      ]
+    },
+    {
+      "id": "thesis",
+      "name": "Thesis",
+      "color": "#a8642a",
+      "countsAsWork": false,
+      "categories": [
+        { "id": "literature", "name": "Literature research" },
+        { "id": "outline", "name": "Concept & outline" },
+        { "id": "writing", "name": "Writing" },
+        { "id": "prototype", "name": "Implementation & prototype" },
+        { "id": "evaluation", "name": "Evaluation & study" },
+        { "id": "revision", "name": "Revision" },
+        { "id": "supervision", "name": "Supervisor meetings" },
+        { "id": "formatting", "name": "Formatting & submission" }
+      ]
+    }
+  ],
+  "phases": [
+    { "id": "build-up", "name": "Build up overtime", "start": "2027-01-04", "end": "2027-02-28", "plannedHoursPerWeek": 40, "areaShare": { "project-a": 0.5, "project-b": 0.5 } },
+    { "id": "thesis", "name": "Thesis – reduce overtime", "start": "2027-03-01", "end": "2027-05-30", "plannedHoursPerWeek": 8, "areaShare": { "project-b": 1 } },
+    { "id": "wind-down", "name": "Wind down to zero", "start": "2027-05-31", "end": "2027-06-30", "plannedHoursPerWeek": "zero-balance" }
+  ],
+  "warnings": {
+    "enabled": true,
+    "maxDailyHours": 10,
+    "longSessionHours": 6,
+    "breakRules": [
+      { "afterHours": 6, "minBreakMinutes": 30 },
+      { "afterHours": 9, "minBreakMinutes": 45 }
+    ]
+  }
+}
