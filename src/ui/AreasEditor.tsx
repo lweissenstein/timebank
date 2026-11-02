@@ -48,6 +48,10 @@ export function AreasEditor({ profile }: { profile: Profile }) {
               {t('settings.countsAsWork')}
             </label>
             <label className="check">
+              <input type="checkbox" checked={area.thesisFlag !== false} onChange={(e) => updateArea(area.id, { thesisFlag: e.target.checked })} />
+              {t('settings.thesisFlag')}
+            </label>
+            <label className="check">
               <input type="checkbox" checked={area.hidden} onChange={(e) => updateArea(area.id, { hidden: e.target.checked })} />
               {t('settings.hidden')}
             </label>

@@ -50,6 +50,8 @@ export const de: Record<MessageKey, string> = {
   'note.placeholder': 'Was machst du gerade? (optional)',
   'note.thesis': 'Relevant für Thesis-Notizen',
 
+  'log.viewDetail': 'Details',
+  'log.viewSummary': 'Zusammengefasst',
   'log.add': 'Eintrag nachtragen',
   'log.filterArea': 'Bereich',
   'log.thesisOnly': 'Nur Thesis-relevant',
@@ -165,6 +167,7 @@ export const de: Record<MessageKey, string> = {
   'settings.areas': 'Bereiche & Kategorien',
   'settings.areaName': 'Name des Bereichs',
   'settings.countsAsWork': 'Zählt als Arbeitszeit',
+  'settings.thesisFlag': '„Relevant für Abschlussarbeit“ anbieten',
   'settings.hidden': 'Ausgeblendet',
   'settings.addCategory': 'Kategorie hinzufügen',
   'settings.addArea': 'Bereich hinzufügen',

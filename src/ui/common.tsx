@@ -124,3 +124,8 @@ export function slugId(name: string, taken: string[]): string {
   for (let i = 2; taken.includes(id); i++) id = `${base}-${i}`;
   return id;
 }
+
+/** Whether the "relevant for thesis" flag is offered for sessions of this area. */
+export function allowsThesisFlag(profile: Profile, areaId: string): boolean {
+  return areaById(profile, areaId)?.thesisFlag !== false;
+}

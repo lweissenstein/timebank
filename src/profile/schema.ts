@@ -16,6 +16,7 @@ const area = z.object({
   color: z.string().default('#1f6f5c'),
   countsAsWork: z.boolean().default(true),
   hidden: z.boolean().default(false),
+  thesisFlag: z.boolean().default(true),
   categories: z.array(category).default([]),
 });
 

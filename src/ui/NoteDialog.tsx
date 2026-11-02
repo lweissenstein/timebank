@@ -4,7 +4,7 @@ import { sessionWorkMs } from '../core/worktime';
 import { repo } from '../data/repo';
 import { useI18n } from '../i18n';
 import { useAppData } from './AppData';
-import { Dialog, labelFor } from './common';
+import { allowsThesisFlag, Dialog, labelFor } from './common';
 
 /**
  * Note dialog for one or two sessions:
@@ -163,10 +163,12 @@ function NoteSection({
             ))}
         </div>
       )}
-      <label className="check">
-        <input type="checkbox" checked={draft.thesis} onChange={(e) => onChange({ ...draft, thesis: e.target.checked })} />
-        {t('note.thesis')}
-      </label>
+      {allowsThesisFlag(profile, session.areaId) && (
+        <label className="check">
+          <input type="checkbox" checked={draft.thesis} onChange={(e) => onChange({ ...draft, thesis: e.target.checked })} />
+          {t('note.thesis')}
+        </label>
+      )}
     </div>
   );
 }

@@ -48,6 +48,8 @@ export const en = {
   'note.placeholder': 'What are you doing? (optional)',
   'note.thesis': 'Relevant for thesis notes',
 
+  'log.viewDetail': 'Details',
+  'log.viewSummary': 'Summary',
   'log.add': 'Add entry',
   'log.filterArea': 'Area',
   'log.thesisOnly': 'Thesis-relevant only',
@@ -163,6 +165,7 @@ export const en = {
   'settings.areas': 'Areas & categories',
   'settings.areaName': 'Area name',
   'settings.countsAsWork': 'Counts as working time',
+  'settings.thesisFlag': 'Offer "relevant for thesis"',
   'settings.hidden': 'Hidden',
   'settings.addCategory': 'Add category',
   'settings.addArea': 'Add area',

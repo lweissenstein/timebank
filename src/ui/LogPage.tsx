@@ -4,10 +4,21 @@ import type { Session } from '../core/types';
 import { breakMinutesOf, sessionWorkMs } from '../core/worktime';
 import { useI18n } from '../i18n';
 import { useAppData } from './AppData';
-import { download, labelFor } from './common';
+import { download, labelFor, Segmented } from './common';
+import { Donut } from './Donut';
 import { SessionDialog } from './SessionDialog';
 
 const PAGE_DAYS = 21;
+const VIEW_KEY = 'timebank.logView';
+type View = 'detail' | 'summary';
+
+function loadView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'summary' ? 'summary' : 'detail';
+  } catch {
+    return 'detail';
+  }
+}
 
 export function LogPage() {
   const { t, date, time, dur } = useI18n();
@@ -17,11 +28,33 @@ export function LogPage() {
   const [query, setQuery] = useState('');
   const [days, setDays] = useState(PAGE_DAYS);
   const [editing, setEditing] = useState<Session | 'new' | null>(null);
+  const [view, setViewState] = useState<View>(loadView);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const setView = (v: View) => {
+    setViewState(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* ignore */
+    }
+  };
+  const toggleDay = (day: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return sessions
-      .filter((s) => (!areaFilter || s.areaId === areaFilter) && (!thesisOnly || s.thesisRelevant) && (!q || s.note.toLowerCase().includes(q)))
+      .filter(
+        (s) =>
+          (!areaFilter || s.areaId === areaFilter) &&
+          (!thesisOnly || s.thesisRelevant) &&
+          (!q || s.note.toLowerCase().includes(q)),
+      )
       .sort((a, b) => b.start - a.start);
   }, [sessions, areaFilter, thesisOnly, query]);
 
@@ -35,13 +68,15 @@ export function LogPage() {
   }, [filtered]);
 
   function exportNotes() {
-    const lines = [...filtered]
-      .reverse()
-      .map((s) => {
-        const l = labelFor(profile, s.areaId, s.categoryId);
-        return `- ${toISODate(new Date(s.start))} · ${l.area} / ${l.category} (${dur(sessionWorkMs(s, now) / 3_600_000)})${s.note ? `: ${s.note}` : ''}`;
-      });
-    download(`timebank-notes-${toISODate(new Date())}.md`, `# Notes\n\n${lines.join('\n')}\n`, 'text/markdown');
+    const lines = [...filtered].reverse().map((s) => {
+      const l = labelFor(profile, s.areaId, s.categoryId);
+      return `- ${toISODate(new Date(s.start))} · ${l.area} / ${l.category} (${dur(sessionWorkMs(s, now) / 3_600_000)})${s.note ? `: ${s.note}` : ''}`;
+    });
+    download(
+      `timebank-notes-${toISODate(new Date())}.md`,
+      `# Notes\n\n${lines.join('\n')}\n`,
+      'text/markdown',
+    );
   }
 
   return (
@@ -55,7 +90,11 @@ export function LogPage() {
         </button>
       </div>
       <div className="filters">
-        <select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} aria-label={t('log.filterArea')}>
+        <select
+          value={areaFilter}
+          onChange={(e) => setAreaFilter(e.target.value)}
+          aria-label={t('log.filterArea')}
+        >
           <option value="">
             {t('log.filterArea')}: {t('common.all')}
           </option>
@@ -65,53 +104,133 @@ export function LogPage() {
             </option>
           ))}
         </select>
-        <input type="search" placeholder={t('log.search')} value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input
+          type="search"
+          placeholder={t('log.search')}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
         <label className="check">
-          <input type="checkbox" checked={thesisOnly} onChange={(e) => setThesisOnly(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={thesisOnly}
+            onChange={(e) => setThesisOnly(e.target.checked)}
+          />
           {t('log.thesisOnly')}
         </label>
       </div>
 
+      <Segmented<View>
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'detail', label: t('log.viewDetail') },
+          { value: 'summary', label: t('log.viewSummary') },
+        ]}
+      />
+
       {groups.length === 0 && <p className="muted center">{t('log.empty')}</p>}
       {groups.slice(0, days).map(([day, list]) => {
-        const counting = (s: Session) => profile.areas.find((a) => a.id === s.areaId)?.countsAsWork ?? false;
+        const counting = (s: Session) =>
+          profile.areas.find((a) => a.id === s.areaId)?.countsAsWork ?? false;
         const work = list.filter(counting).reduce((sum, s) => sum + sessionWorkMs(s, now), 0);
-        const other = list.filter((s) => !counting(s)).reduce((sum, s) => sum + sessionWorkMs(s, now), 0);
+        const other = list
+          .filter((s) => !counting(s))
+          .reduce((sum, s) => sum + sessionWorkMs(s, now), 0);
+        const open = expanded.has(day);
+        const byArea = profile.areas
+          .map((a) => ({
+            id: a.id,
+            name: a.name,
+            color: a.color,
+            ms: list
+              .filter((s) => s.areaId === a.id)
+              .reduce((sum, s) => sum + sessionWorkMs(s, now), 0),
+          }))
+          .filter((a) => a.ms > 0);
         return (
-          <section key={day} className="day-group">
-            <header>
-              <span className="day-title">{date(day, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-              <span className="day-sum">
-                <strong>{dur(work / 3_600_000)}</strong>
-                {other > 0 && ` + ${dur(other / 3_600_000)} ${t('common.notCounted')}`} · {t('log.breakShort', { min: Math.round(breakMinutesOf(list.filter(counting), now)) })}
-              </span>
-            </header>
-            <ul className="session-list">
-              {list.map((s) => {
-                const l = labelFor(profile, s.areaId, s.categoryId);
-                return (
-                  <li key={s.id}>
-                    <button className="session-row" onClick={() => setEditing(s)}>
-                      <span className="dot" style={{ background: l.color }} />
-                      <span className="session-main">
-                        <span>
-                          <strong>{l.area}</strong> · {l.category}
-                          {s.thesisRelevant && <span className="badge">Thesis</span>}
-                          {s.locationId && <span className="badge">{profile.workLocations?.find((l) => l.id === s.locationId)?.name ?? s.locationId}</span>}
-                        </span>
-                        {s.note && <span className="session-note">{s.note}</span>}
+          <section key={day} className={`day-group ${view}`}>
+            {view === 'summary' ? (
+              <button className="day-summary" onClick={() => toggleDay(day)} aria-expanded={open}>
+                <span className="day-summary-main">
+                  <span className="day-title">
+                    {date(day, { weekday: 'long', day: '2-digit', month: '2-digit' })}
+                  </span>
+                  <span className="day-total">{dur(work / 3_600_000)}</span>
+                  {other > 0 && (
+                    <span className="muted small">
+                      + {dur(other / 3_600_000)} {t('common.notCounted')}
+                    </span>
+                  )}
+                  <span className="legend">
+                    {byArea.map((a) => (
+                      <span key={a.id} className="legend-item">
+                        <span className="dot" style={{ background: a.color }} /> {a.name}{' '}
+                        {dur(a.ms / 3_600_000)}
                       </span>
-                      <span className="session-time">
-                        <span>{dur(sessionWorkMs(s, now) / 3_600_000)}</span>
-                        <span className="muted">
-                          {time(s.start)}–{s.end === null ? t('log.running') : time(s.end)}
+                    ))}
+                  </span>
+                </span>
+                <Donut
+                  segments={byArea.map((a) => ({
+                    value: a.ms,
+                    color: a.color,
+                    label: `${a.name}: ${dur(a.ms / 3_600_000)}`,
+                  }))}
+                />
+              </button>
+            ) : (
+              <header>
+                <span className="day-title">
+                  {date(day, {
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
+                </span>
+                <span className="day-sum">
+                  <strong>{dur(work / 3_600_000)}</strong>
+                  {other > 0 && ` + ${dur(other / 3_600_000)} ${t('common.notCounted')}`} ·{' '}
+                  {t('log.breakShort', {
+                    min: Math.round(breakMinutesOf(list.filter(counting), now)),
+                  })}
+                </span>
+              </header>
+            )}
+            {(view === 'detail' || open) && (
+              <ul className="session-list">
+                {list.map((s) => {
+                  const l = labelFor(profile, s.areaId, s.categoryId);
+                  return (
+                    <li key={s.id}>
+                      <button className="session-row" onClick={() => setEditing(s)}>
+                        <span className="dot" style={{ background: l.color }} />
+                        <span className="session-main">
+                          <span>
+                            <strong>{l.area}</strong> · {l.category}
+                            {s.thesisRelevant && <span className="badge">Thesis</span>}
+                            {s.locationId && (
+                              <span className="badge">
+                                {profile.workLocations?.find((l) => l.id === s.locationId)?.name ??
+                                  s.locationId}
+                              </span>
+                            )}
+                          </span>
+                          {s.note && <span className="session-note">{s.note}</span>}
                         </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                        <span className="session-time">
+                          <span>{dur(sessionWorkMs(s, now) / 3_600_000)}</span>
+                          <span className="muted">
+                            {time(s.start)}–{s.end === null ? t('log.running') : time(s.end)}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
         );
       })}

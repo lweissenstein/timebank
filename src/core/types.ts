@@ -15,6 +15,8 @@ export interface Area {
   /** Whether time in this area counts towards the working-time balance. */
   countsAsWork: boolean;
   hidden: boolean;
+  /** Offer the "relevant for thesis" flag for sessions in this area (default true). */
+  thesisFlag?: boolean;
   categories: Category[];
 }
 

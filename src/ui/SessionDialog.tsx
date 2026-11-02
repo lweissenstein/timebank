@@ -187,10 +187,12 @@ export function SessionDialog({ session, onClose }: { session: Session | 'new' |
           {t('session.note')}
           <textarea rows={3} value={form.note} onChange={(e) => update({ note: e.target.value })} />
         </label>
-        <label className="check">
-          <input type="checkbox" checked={form.thesisRelevant} onChange={(e) => update({ thesisRelevant: e.target.checked })} />
-          {t('session.thesis')}
-        </label>
+        {(area?.thesisFlag !== false || form.thesisRelevant) && (
+          <label className="check">
+            <input type="checkbox" checked={form.thesisRelevant} onChange={(e) => update({ thesisRelevant: e.target.checked })} />
+            {t('session.thesis')}
+          </label>
+        )}
         {error && <p className="warning">{error}</p>}
       </div>
       <div className="dialog-actions">
