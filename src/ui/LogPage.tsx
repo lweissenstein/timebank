@@ -74,13 +74,16 @@ export function LogPage() {
 
       {groups.length === 0 && <p className="muted center">{t('log.empty')}</p>}
       {groups.slice(0, days).map(([day, list]) => {
-        const total = list.reduce((sum, s) => sum + sessionWorkMs(s, now), 0);
+        const counting = (s: Session) => profile.areas.find((a) => a.id === s.areaId)?.countsAsWork ?? false;
+        const work = list.filter(counting).reduce((sum, s) => sum + sessionWorkMs(s, now), 0);
+        const other = list.filter((s) => !counting(s)).reduce((sum, s) => sum + sessionWorkMs(s, now), 0);
         return (
           <section key={day} className="day-group">
             <header>
-              <span>{date(day, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-              <span>
-                {formatDuration(total, false)} h · {t('log.breakShort', { min: Math.round(breakMinutesOf(list, now)) })}
+              <span className="day-title">{date(day, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+              <span className="day-sum">
+                <strong>{formatDuration(work, false)} h</strong>
+                {other > 0 && ` + ${formatDuration(other, false)} h ${t('common.notCounted')}`} · {t('log.breakShort', { min: Math.round(breakMinutesOf(list.filter(counting), now)) })}
               </span>
             </header>
             <ul className="session-list">

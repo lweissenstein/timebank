@@ -36,7 +36,7 @@ export function AreasEditor({ profile }: { profile: Profile }) {
             <div className="row">
               <label className="grow">
                 {t('settings.areaName')}
-                <input defaultValue={area.name} onBlur={(e) => e.target.value.trim() && e.target.value !== area.name && updateArea(area.id, { name: e.target.value.trim() })} />
+                <input key={area.name} defaultValue={area.name} onBlur={(e) => e.target.value.trim() && e.target.value !== area.name && updateArea(area.id, { name: e.target.value.trim() })} />
               </label>
               <label>
                 &nbsp;
@@ -55,6 +55,7 @@ export function AreasEditor({ profile }: { profile: Profile }) {
               {area.categories.map((c) => (
                 <li key={c.id} className={c.hidden ? 'is-hidden' : ''}>
                   <input
+                    key={c.name}
                     defaultValue={c.name}
                     aria-label={c.id}
                     onBlur={(e) =>

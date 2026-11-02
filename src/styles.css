@@ -465,21 +465,34 @@ label.inline {
 }
 
 /* ---------- log ---------- */
+.day-group {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
 .day-group header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 2px 8px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
   font-size: 0.85rem;
-  color: var(--muted);
-  padding: 4px 2px;
+  color: var(--ink-2);
+}
+.day-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+.day-sum {
+  font-variant-numeric: tabular-nums;
 }
 .session-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
 }
 .session-list li + li {
   border-top: 1px solid var(--line);

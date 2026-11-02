@@ -87,6 +87,10 @@ export class Repository {
     return { before, after, report };
   }
 
+  async getSession(id: string): Promise<Session | undefined> {
+    return this.store.sessions.get(id);
+  }
+
   async saveSession(session: Session): Promise<void> {
     await this.store.sessions.put({ ...session, updatedAt: Date.now() });
   }

@@ -94,8 +94,20 @@ export function SessionDialog({ session, onClose }: { session: Session | 'new' |
       thesisRelevant: form.thesisRelevant,
       locationId: form.locationId || undefined,
     };
-    if (session === 'new') await repo.addManualSession(data);
-    else await repo.saveSession({ ...session, ...data });
+    if (session === 'new') {
+      await repo.addManualSession(data);
+    } else {
+      // Build on the latest stored version: the session may have been paused,
+      // stopped or synced while the dialog was open.
+      const latest = (await repo.getSession(session.id)) ?? session;
+      const unchangedBreak = form.breakMinutes === Math.round(session.breakMinutes);
+      await repo.saveSession({
+        ...latest,
+        ...data,
+        end: latest.end === null ? null : (endMs ?? latest.end),
+        breakMinutes: unchangedBreak ? latest.breakMinutes : data.breakMinutes,
+      });
+    }
     onClose();
   }
 
