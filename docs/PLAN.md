@@ -37,6 +37,12 @@
   compatibility but are not used by the UI (`core/plan.ts` is legacy).
 - Week/month totals and the weekly table count target and difference only up to today.
 
+- Breaks: the pause button ends the current block; "resume" starts a new block
+  with the same area, category, location and note. A break is the gap between
+  two sessions (confirmed when created by pause/resume, otherwise detected
+  automatically). Older in-session pauses are converted on start/sync/import
+  (`core/breaks.ts`); untimed totals can be placed via "Insert break".
+
 ## Later
 - Optional per-category default for "thesis-relevant" (`thesisDefault`).
 - Excel export into the employer template (ExcelJS; needs the template). `core/worktime.workByDay` and the session data already give per-day start/end/break.

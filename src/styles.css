@@ -982,3 +982,11 @@ div.session-row {
   border-color: var(--warn-ink);
   color: var(--warn-ink);
 }
+
+.insert-break {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.insert-break .row {
+  margin: 8px 0;
+}

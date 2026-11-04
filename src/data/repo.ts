@@ -2,6 +2,7 @@ import { MS_PER_MINUTE, type ISODate } from '../core/dates';
 import { isSnapshot, mergeSnapshots, type Snapshot } from '../core/merge';
 import { applyMigration, type Migration } from '../core/migrate';
 import { CONTINUITY_MS } from '../core/worktime';
+import { continuation, normalizeBreaks, splitAtBreak } from '../core/breaks';
 import type { Absence, AbsenceType, Profile, Session } from '../core/types';
 import { db, newId, type TimebankDB } from './db';
 
@@ -36,6 +37,9 @@ export class Repository {
   async start(areaId: string, categoryId: string, now = Date.now(), locationId?: string): Promise<Session | undefined> {
     return this.store.transaction('rw', this.store.sessions, async () => {
       const stopped = await this.stopInternal(now);
+      // Starting while on break ends the break; the gap counts as a confirmed break.
+      const onBreak = stopped ? undefined : await this.onBreakSession();
+      if (onBreak) await this.store.sessions.put({ ...onBreak, onBreak: false, updatedAt: now });
       // A stop followed by a start within a short time is a correction, not a break:
       // the new session starts exactly where the last one ended.
       const lastEnd = stopped?.end ?? (await this.lastEnd());
@@ -51,6 +55,7 @@ export class Repository {
         note: '',
         thesisRelevant: false,
         ...(locationId ? { locationId } : {}),
+        ...(onBreak ? { gapBefore: 'pause' as const } : {}),
         updatedAt: now,
       });
       return stopped;
@@ -76,6 +81,70 @@ export class Repository {
     const stopped: Session = { ...closePause(s, now), end: now, updatedAt: now };
     await this.store.sessions.put(stopped);
     return stopped;
+  }
+
+  /** The session that was ended with the pause button and not resumed yet. */
+  async onBreakSession(): Promise<Session | undefined> {
+    let found: Session | undefined;
+    await this.store.sessions.each((s) => {
+      if (s.onBreak && !s.deleted && (!found || (s.end ?? 0) > (found.end ?? 0))) found = s;
+    });
+    return found;
+  }
+
+  /** Pause: ends the running session and remembers it for "resume". */
+  async pause(now = Date.now()): Promise<Session | undefined> {
+    return this.store.transaction('rw', this.store.sessions, async () => {
+      const s = await this.running();
+      if (!s) return undefined;
+      const paused: Session = { ...closePause(s, now), end: now, onBreak: true, updatedAt: now };
+      await this.store.sessions.put(paused);
+      return paused;
+    });
+  }
+
+  /** Resume after a pause: a new session with the same settings starts now. */
+  async resume(now = Date.now()): Promise<Session | undefined> {
+    return this.store.transaction('rw', this.store.sessions, async () => {
+      const paused = await this.onBreakSession();
+      if (!paused || (await this.running())) return undefined;
+      await this.store.sessions.put({ ...paused, onBreak: false, updatedAt: now });
+      const next = continuation(paused, newId(), now, now);
+      await this.store.sessions.add(next);
+      return next;
+    });
+  }
+
+  /** Ends the break without resuming (e.g. end of the working day). */
+  async endBreak(now = Date.now()): Promise<void> {
+    const paused = await this.onBreakSession();
+    if (paused) await this.store.sessions.put({ ...paused, onBreak: false, updatedAt: now });
+  }
+
+  /** Inserts a break [from, to] into a session by splitting it in two. */
+  async insertBreak(sessionId: string, from: number, to: number, now = Date.now()): Promise<void> {
+    await this.store.transaction('rw', this.store.sessions, async () => {
+      const s = await this.store.sessions.get(sessionId);
+      if (!s) return;
+      const [a, b] = splitAtBreak(s, from, to, newId(), now);
+      await this.store.sessions.bulkPut([a, b]);
+    });
+  }
+
+  /**
+   * Converts pauses recorded inside sessions (older app versions) into
+   * separate sessions with the break as the gap between them.
+   */
+  async normalizeBreaks(now = Date.now()): Promise<number> {
+    return this.store.transaction('rw', this.store.sessions, async () => {
+      const changed: Session[] = [];
+      for (const s of await this.store.sessions.toArray()) {
+        const parts = normalizeBreaks(s, now);
+        if (parts) changed.push(...parts);
+      }
+      if (changed.length) await this.store.sessions.bulkPut(changed);
+      return changed.length;
+    });
   }
 
   async togglePause(now = Date.now()): Promise<void> {
@@ -171,6 +240,7 @@ export class Repository {
     if (!isSnapshot(data)) throw new Error('Not a Timebank backup file');
     const next = mode === 'merge' ? mergeSnapshots(await this.snapshot(), data) : data;
     await this.restore(next);
+    await this.normalizeBreaks();
   }
 
   async clearAll(): Promise<void> {

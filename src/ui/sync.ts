@@ -30,7 +30,10 @@ export async function syncNow(): Promise<void> {
   set({ busy: true, error: null });
   try {
     const last = await new GitHubSync(config).sync(repo);
+    // Data from an older app version may still contain in-session pauses.
+    const converted = await repo.normalizeBreaks();
     set({ busy: false, last });
+    if (converted > 0) scheduleSync(1000);
   } catch (e) {
     set({ busy: false, error: (e as Error).message });
   }

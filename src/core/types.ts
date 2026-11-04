@@ -125,6 +125,11 @@ export interface Session {
    * 'pause' = confirmed break, 'off' = not a break (e.g. free time).
    */
   gapBefore?: 'pause' | 'off';
+  /**
+   * Set on a session that was ended with the pause button. While set, the
+   * app shows "on break" and offers to resume with the same settings.
+   */
+  onBreak?: boolean;
   note: string;
   thesisRelevant: boolean;
   /** Id of a `Profile.workLocations` entry. */

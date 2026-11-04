@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { addDays, endOfWeek, startOfWeek } from '../core/dates';
+import type { Session } from '../core/types';
 import { dayWarnings, isUnusuallyLong } from '../core/warnings';
 import { sessionBreakMs, sessionWorkMs } from '../core/worktime';
 import { repo } from '../data/repo';
@@ -13,6 +14,8 @@ export function TrackPage() {
   const { t, signed, dur, time, date } = useI18n();
   const { profile, running, ledger, today, sessions } = useAppData();
   const now = useNow(1000);
+  // A session ended with the pause button (shown as "on break" until resumed).
+  const onBreak = running ? undefined : sessions.filter((s) => s.onBreak).sort((a, b) => (b.end ?? 0) - (a.end ?? 0))[0];
   const [noteTarget, setNoteTarget] = useState<NoteTarget | null>(null);
   const locations = profile.workLocations ?? [];
   const [preferredLocation, setPreferredLocation] = useState(loadLocation);
@@ -53,7 +56,7 @@ export function TrackPage() {
         </p>
       )}
 
-      <Card className={`timer ${running ? (running.pausedAt ? 'paused' : 'running') : 'idle'}`}>
+      <Card className={`timer ${running ? (running.pausedAt ? 'paused' : 'running') : onBreak ? 'paused' : 'idle'}`}>
         {running && label ? (
           <>
             <div className="timer-label">
@@ -78,7 +81,7 @@ export function TrackPage() {
               <p className="warning">{t('track.longSession', { hours: dur(profile.warnings.longSessionHours) })}</p>
             )}
             <div className="timer-actions">
-              <button className="btn big" onClick={() => repo.togglePause()}>
+              <button className="btn big" onClick={() => (running.pausedAt ? repo.togglePause() : repo.pause())}>
                 {running.pausedAt ? t('track.resume') : t('track.pause')}
               </button>
               <button className="btn big danger" onClick={stop}>
@@ -86,6 +89,8 @@ export function TrackPage() {
               </button>
             </div>
           </>
+        ) : onBreak && onBreak.end !== null ? (
+          <BreakCard session={onBreak} now={now} />
         ) : (
           <p className="muted center">{t('track.idle')}</p>
         )}
@@ -164,4 +169,33 @@ function saveLocation(id: string) {
   } catch {
     /* ignore */
   }
+}
+
+/** Shown while on break: time since the pause started, resume or end the break. */
+function BreakCard({ session, now }: { session: Session; now: number }) {
+  const { t, time } = useI18n();
+  const { profile } = useAppData();
+  const label = labelFor(profile, session.areaId, session.categoryId);
+  return (
+    <>
+      <div className="timer-label">
+        <span className="dot pause-dot" />
+        <strong>{t('track.onBreak')}</strong>
+      </div>
+      <div className="timer-clock" aria-live="polite">
+        {formatDuration(now - (session.end ?? now))}
+      </div>
+      <div className="timer-meta">
+        {t('track.breakSince', { time: time(session.end ?? now) })} · {t('track.resumeWith', { area: label.area, category: label.category })}
+      </div>
+      <div className="timer-actions">
+        <button className="btn big primary" onClick={() => repo.resume()}>
+          {t('track.resume')}
+        </button>
+        <button className="btn big" onClick={() => repo.endBreak()}>
+          {t('track.endBreak')}
+        </button>
+      </div>
+    </>
+  );
 }

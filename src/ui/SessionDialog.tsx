@@ -195,6 +195,7 @@ export function SessionDialog({ session, onClose }: { session: Session | 'new' |
             {t('session.thesis')}
           </label>
         )}
+        {session !== 'new' && session && <InsertBreak session={session} date={form.date} onDone={onClose} />}
         {error && <p className="warning">{error}</p>}
       </div>
       <div className="dialog-actions">
@@ -212,5 +213,46 @@ export function SessionDialog({ session, onClose }: { session: Session | 'new' |
         </button>
       </div>
     </Dialog>
+  );
+}
+
+/** Inserts a break (e.g. lunch 14:00–15:24) by splitting the session into two blocks. */
+function InsertBreak({ session, date, onDone }: { session: Session; date: string; onDone: () => void }) {
+  const { t } = useI18n();
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  async function insert() {
+    setError(null);
+    if (!from || !to) return;
+    try {
+      const latest = (await repo.getSession(session.id)) ?? session;
+      await repo.insertBreak(latest.id, at(date, from), at(date, to));
+      onDone();
+    } catch {
+      setError(t('session.breakInvalid'));
+    }
+  }
+
+  return (
+    <details className="insert-break">
+      <summary>{t('session.insertBreak')}</summary>
+      <p className="hint">{t('session.insertBreakHint')}</p>
+      <div className="row">
+        <label>
+          {t('cal.from')}
+          <input type="time" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </label>
+        <label>
+          {t('cal.to')}
+          <input type="time" value={to} onChange={(e) => setTo(e.target.value)} />
+        </label>
+      </div>
+      {error && <p className="warning">{error}</p>}
+      <button className="btn" disabled={!from || !to} onClick={insert}>
+        {t('session.insertBreakApply')}
+      </button>
+    </details>
   );
 }

@@ -9,6 +9,7 @@ import { SettingsPage } from './SettingsPage';
 import { StatsPage } from './StatsPage';
 import { startAutoSync, useSyncState } from './sync';
 import { TrackPage } from './TrackPage';
+import { repo } from '../data/repo';
 import { Icon, type IconName } from './icons';
 
 const TABS = [
@@ -33,7 +34,7 @@ export function App() {
   const sync = useSyncState();
 
   useEffect(() => {
-    startAutoSync();
+    void repo.normalizeBreaks().finally(startAutoSync);
     navigator.storage?.persist?.().catch(() => undefined);
   }, []);
 
